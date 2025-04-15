@@ -1,0 +1,13 @@
+{
+  "folders": [
+	{
+		"name": "3AxisControlProject",
+		"path": ".."
+	}
+],
+  "settings": {
+    "files.associations": {
+      "accelstepper.h": "c"
+    }
+  }
+}
