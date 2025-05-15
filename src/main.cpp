@@ -150,15 +150,6 @@ void loop() // 循环函数
 // 电机初始化设置,通电之前将电机移动到指定位置，通电时会读取当时位置并设置为坐标原点。
 void stepperRunOne()
 {
-  // Serial.print(F("stepperX Position: "));
-  // Serial.println(stepperX.currentPosition());
-
-  // Serial.print(F("stepperY Position: "));
-  // Serial.println(stepperY.currentPosition());
-
-  // Serial.print(F("stepperZ Position: "));
-  // Serial.println(stepperZ.currentPosition());
-
   stepperX.setCurrentPosition(0);
   stepperY.setCurrentPosition(0);
   stepperZ.setCurrentPosition(0);
