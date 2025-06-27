@@ -6,7 +6,11 @@
 - Prepared extensible interface for future custom serial protocols
 
 Key improvements:
+
 ✅ Clean separation of concerns
+
 ✅ Reusable components
+
 ✅ Better maintainability
+
 ✅ Extensible architecture"
