@@ -19,57 +19,61 @@ bool CommandHandler::isHandMode() const {
 void CommandHandler::processCommand(const String& cmd) {
     if (cmd == "HandMode") {
         setHandMode(true);
-        Serial.println("HandMode");
+        Serial.println("HandMode Activated");
     }
     else if (cmd == "AutoMode") {
         setHandMode(false);
-        Serial.println("AutoMode");
+        Serial.println("AutoMode Activated");
     }
     else if (handMode) {
+        // 手动模式下处理调试命令
         processManualCommand(cmd);
         stepperControl->waitForCompletion();
     }
-    else if (cmd.startsWith("Y") && cmd.indexOf('X') != -1) {
-        processCoordinateData(cmd);
+    else {
+        // 自动模式下的其他命令处理
+        Serial.println("AutoMode: Command received but not processed by CommandHandler");
+        Serial.println("Note: ROI data should be handled by ROIProcessor");
     }
 }
 
-// 处理手动模式命令
+// 处理手动模式命令 - 用于三轴系统调试
 void CommandHandler::processManualCommand(const String& cmd) {
     char command = getCommandChar(cmd);
     int data = getCommandData(cmd);
     
     switch (command) {
         case 'O': // 获取当前位置
+            Serial.println(F("=== Current Positions ==="));
             stepperControl->printPositions();
             break;
             
-        case 'V': // moveTo
+        case 'V': // moveTo - 移动到绝对位置
             printCommandResponse(command, data, "moveTo");
             stepperControl->moveTo(data);
             break;
             
-        case 'M': // move
+        case 'M': // move - 相对移动
             printCommandResponse(command, data, "move");
             stepperControl->move(data);
             break;
             
-        case 'R': // runToNewPosition
+        case 'R': // runToNewPosition - 立即移动到位置
             printCommandResponse(command, data, "runToNewPosition");
             stepperControl->runToNewPosition(data);
             break;
             
-        case 'S': // setCurrentPosition
+        case 'S': // setCurrentPosition - 设置当前位置
             printCommandResponse(command, data, "setCurrentPosition");
             stepperControl->setCurrentPosition(data);
             break;
             
-        case 'A': // setAcceleration
+        case 'A': // setAcceleration - 设置加速度
             printCommandResponse(command, data, "setAcceleration");
             stepperControl->setAcceleration(data);
             break;
             
-        case 'X': // setMaxSpeed
+        case 'X': // setMaxSpeed - 设置最大速度
             printCommandResponse(command, data, "setMaxSpeed");
             stepperControl->setMaxSpeed(data);
             break;
@@ -78,61 +82,36 @@ void CommandHandler::processManualCommand(const String& cmd) {
             if (data >= 0 && data <= 3) {
                 stepperControl->setCurrentStepper(data);
                 if (data == 0) {
-                    Serial.println(F("Running All Motors"));
+                    Serial.println(F("=== Running All Motors ==="));
                 } else {
-                    Serial.print(F("Running Motor "));
-                    Serial.println(data);
+                    Serial.print(F("=== Running Motor "));
+                    Serial.print(data);
+                    Serial.println(F(" ==="));
                 }
             } else {
-                Serial.println(F("Motor Number Wrong."));
+                Serial.println(F("ERROR: Motor Number Wrong (0-3 allowed)"));
             }
             break;
             
+        case 'H': // 帮助命令
+            printHelpMessage();
+            break;
+            
+        case 'T': // 测试所有轴
+            testAllAxes();
+            break;
+            
         default:
-            Serial.println(F("Unknown Command"));
+            Serial.print(F("ERROR: Unknown Command '"));
+            Serial.print(command);
+            Serial.println(F("' - Type 'H' for help"));
             break;
     }
 }
 
-// 处理自动模式的坐标数据
-void CommandHandler::processCoordinateData(const String& input) {
-    int xCoord[numCoordinates];
-    
-    // 读取y坐标数据
-    int yCoord = input.substring(1, 4).toInt();
-    
-    // 读取x坐标数据,并存入数组
-    int xStartIndex = input.indexOf('X') + 1;
-    int coordCount = 0;
-    for (int j = xStartIndex; j < static_cast<int>(input.length()); j += 3) {
-        if (coordCount < numCoordinates) {
-            xCoord[coordCount] = input.substring(j, j + 3).toInt();
-            coordCount++;
-        } else {
-            break;
-        }
-    }
-    
-    // 移动Y轴到指定位置
-    stepperControl->moveYTo(yCoord);
-    while (stepperControl->isAnyRunning()) {
-        stepperControl->run();
-    }
-    
-    // 逐个执行X轴坐标点
-    for (int j = 0; j < coordCount; j++) {
-        stepperControl->moveXTo(xCoord[j]);
-        while (stepperControl->isAnyRunning()) {
-            stepperControl->run();
-        }
-        activateRelay();
-    }
-}
-
-// 继电器控制
+// 继电器控制 - 预留接口
 void CommandHandler::activateRelay() {
-    // 空实现 - 待后续开发
-    Serial.println("继电器功能待实现");
+    Serial.println(F("Relay activation - To be implemented"));
 }
 
 // 解析命令参数
@@ -148,28 +127,74 @@ int CommandHandler::getCommandData(const String& cmd) {
 void CommandHandler::printCommandResponse(char cmd, int data, const String& action) {
     int stepperNum = stepperControl->getCurrentStepper();
     
+    Serial.print(F("[DEBUG] "));
     if (stepperNum == 1) {
-        Serial.print(F("Motor1 '"));
-        Serial.print(action);
-        Serial.print(F("' "));
-        Serial.println(data);
+        Serial.print(F("Motor1"));
     }
     else if (stepperNum == 2) {
-        Serial.print(F("Motor2 '"));
-        Serial.print(action);
-        Serial.print(F("' "));
-        Serial.println(data);
+        Serial.print(F("Motor2"));
     }
     else if (stepperNum == 3) {
-        Serial.print(F("Motor3 '"));
-        Serial.print(action);
-        Serial.print(F("' "));
-        Serial.println(data);
+        Serial.print(F("Motor3"));
     }
     else if (stepperNum == 0) {
-        Serial.print(F("All Motors '"));
-        Serial.print(action);
-        Serial.print(F("' "));
-        Serial.println(data);
+        Serial.print(F("All Motors"));
     }
+    
+    Serial.print(F(" executing '"));
+    Serial.print(action);
+    Serial.print(F("' with value: "));
+    Serial.println(data);
+}
+
+// 打印帮助信息
+void CommandHandler::printHelpMessage() {
+    Serial.println(F("=== Manual Mode Commands ==="));
+    Serial.println(F("O      - Get current positions"));
+    Serial.println(F("V<num> - MoveTo absolute position"));
+    Serial.println(F("M<num> - Move relative distance"));
+    Serial.println(F("R<num> - RunToNewPosition immediately"));
+    Serial.println(F("S<num> - SetCurrentPosition"));
+    Serial.println(F("A<num> - SetAcceleration"));
+    Serial.println(F("X<num> - SetMaxSpeed"));
+    Serial.println(F("D<num> - Select motor (0=all, 1=X, 2=Y, 3=Z)"));
+    Serial.println(F("T      - Test all axes"));
+    Serial.println(F("H      - Show this help"));
+    Serial.println(F("Example: D1 (select X motor), V100 (move to position 100)"));
+}
+
+// 测试所有轴
+void CommandHandler::testAllAxes() {
+    Serial.println(F("=== Testing All Axes ==="));
+    
+    // 保存当前电机选择
+    int originalMotor = stepperControl->getCurrentStepper();
+    
+    // 测试X轴
+    Serial.println(F("Testing X-axis..."));
+    stepperControl->setCurrentStepper(1);
+    stepperControl->move(100);
+    stepperControl->waitForCompletion();
+    stepperControl->move(-100);
+    stepperControl->waitForCompletion();
+    
+    // 测试Y轴
+    Serial.println(F("Testing Y-axis..."));
+    stepperControl->setCurrentStepper(2);
+    stepperControl->move(100);
+    stepperControl->waitForCompletion();
+    stepperControl->move(-100);
+    stepperControl->waitForCompletion();
+    
+    // 测试Z轴
+    Serial.println(F("Testing Z-axis..."));
+    stepperControl->setCurrentStepper(3);
+    stepperControl->move(100);
+    stepperControl->waitForCompletion();
+    stepperControl->move(-100);
+    stepperControl->waitForCompletion();
+    
+    // 恢复原来的电机选择
+    stepperControl->setCurrentStepper(originalMotor);
+    Serial.println(F("=== All Axes Test Complete ==="));
 }
