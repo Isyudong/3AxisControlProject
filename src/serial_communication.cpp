@@ -2,10 +2,46 @@
 #include "command_handler.h"
 #include "roi_processor.h"
 
+/*
+目标功能：串口通讯协议处理模块 - 专注于数据收发和协议解析
+ * init(baud) - 初始化串口通信，默认115200波特率，发送"v"确认信号
+ * processReceivedData() - 处理接收到的串口数据，逐字符缓冲直到收到完整命令行
+ * sendMessage(msg) - 发送消息到串口，不添加换行符
+ * sendLine(msg) - 发送消息到串口，自动添加换行符
+ * isDataAvailable() - 检查串口是否有数据可读
+ * isReady() - 检查串口是否已初始化完成
+ * 
+ * 支持的数据类型和命令:
+ * 1. ROI数据格式: "ROI1,X123.45,Y67.89" - 自动转发给ROIProcessor处理
+ * 2. ROI管理命令: 
+ *    - "PROCESS_ROI" - 处理所有已接收的ROI数据
+ *    - "CLEAR_ROI" - 清空ROI数据缓存
+ * 3. 手动调试命令: 转发给CommandHandler处理
+ * 
+ * 响应消息:
+ * "ACK" - ROI数据接收确认
+ * "ROI_FULL" - ROI缓存已满
+ * "ROI_PROCESSED" - ROI处理完成  
+ * "ROI_CLEARED" - ROI数据已清空
+ * "ERROR: xxx" - 错误信息
+ * 
+ * 安全特性:
+ * - 缓冲区溢出保护 (128字节限制)
+ * - 数据格式验证
+ * - 空指针检查
+ * - 模块可用性检查
+*/
+
 // 构造函数
 SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* processor) 
-    : commandHandler(handler), roiProcessor(processor), serialPort(&Serial), 
-      baudRate(115200), isInitialized(false), bufferIndex(0), stringComplete(false) {
+    : commandHandler(handler), 
+      roiProcessor(processor),
+      serialPort(&Serial), 
+      baudRate(115200),
+      isInitialized(false),
+      bufferIndex(0),
+      stringComplete(false)
+{
     // 初始化字符缓冲区
     memset(inputBuffer, 0, sizeof(inputBuffer));
 }

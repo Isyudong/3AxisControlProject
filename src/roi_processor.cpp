@@ -2,6 +2,36 @@
 #include "stepper_control.h"
 #include <Arduino.h>
 
+/*
+目标功能：ROI视觉数据处理模块 - 专门处理上位机传来的ROI坐标数据
+ * parseROIString(input, roiData) - 解析ROI字符串格式 "ROI1,X123.45,Y67.89"
+ * addROIData(roiData) - 添加ROI数据到缓冲区，最多存储10个ROI点
+ * processAllROI() - 处理所有已存储的ROI数据，执行坐标移动
+ * clearROIData() - 清空ROI数据缓冲区
+ * convertPixelToMM(pixelX, pixelY, mmX, mmY) - 像素坐标转换为实际毫米坐标
+ * 
+ * ROI数据格式:
+ * 输入: "ROI1,X123.45,Y67.89" (ROI编号, X像素坐标, Y像素坐标)
+ * 解析: roiIndex=1, cx=123.45, cy=67.89
+ * 转换: 像素坐标 × 转换系数 = 实际毫米坐标
+ * 
+ * 坐标转换参数:
+ * PIXEL_TO_MM_X = 0.1 (X轴像素到毫米转换系数)
+ * PIXEL_TO_MM_Y = 0.1 (Y轴像素到毫米转换系数)
+ * 
+ * 执行流程:
+ * 1. 移动Y轴到目标位置
+ * 2. 等待Y轴运动完成
+ * 3. 移动X轴到目标位置
+ * 4. 等待X轴运动完成
+ * 5. 到达ROI位置 (可扩展触发继电器等操作)
+ * 
+ * 状态查询:
+ * isFull() - 检查ROI缓冲区是否已满
+ * isEmpty() - 检查ROI缓冲区是否为空
+ * getROICount() - 获取当前存储的ROI数量
+*/
+
 // 构造函数
 ROIProcessor::ROIProcessor(StepperControl* stepper) 
     : stepperControl(stepper), roiCount(0) {

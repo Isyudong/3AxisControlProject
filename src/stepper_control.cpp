@@ -1,4 +1,28 @@
 #include "stepper_control.h"
+/*
+目标功能：三轴步进电机底层控制模块
+ * init() - 初始化三轴步进电机，设置引脚、速度和加速度参数
+ * run() - 持续运行电机控制，必须在主循环中调用以保证电机正常运转
+ * moveTo(data) - 移动当前选中电机到绝对位置，非阻塞式
+ * move(data) - 移动当前选中电机相对距离，非阻塞式
+ * runToNewPosition(data) - 移动到绝对位置，阻塞式，等待到达后才返回
+ * setCurrentPosition(data) - 设置当前位置值，用于零点校准
+ * setAcceleration(data) - 设置当前选中电机的加速度
+ * setMaxSpeed(data) - 设置当前选中电机的最大速度
+ * setCurrentStepper(num) - 选择操作的电机 (0=全部, 1=X轴, 2=Y轴, 3=Z轴)
+ * moveXTo(pos), moveYTo(pos), moveZTo(pos) - 直接控制特定轴移动到位置
+ * isAnyRunning() - 检查是否有任何电机正在运行
+ * waitForCompletion() - 等待所有电机运动完成
+ * printPositions() - 打印所有轴的当前位置信息
+ * getCurrentStepper() - 获取当前选中的电机编号
+ * 
+ * 硬件配置 (config.h):
+ * X轴: STEP_PIN=2, DIR_PIN=3
+ * Y轴: STEP_PIN=4, DIR_PIN=5  
+ * Z轴: STEP_PIN=6, DIR_PIN=7
+ * 运动参数: OneMM=40步/毫米, MAX_SPEED=1000, ACCELERATION=500
+*/
+
 #include <Arduino.h>
 
 // 构造函数
