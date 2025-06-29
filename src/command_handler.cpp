@@ -130,12 +130,12 @@ void CommandHandler::processCoordinateData(const String& input) {
 }
 
 // 继电器控制
-void CommandHandler::activateRelay() {
-    digitalWrite(relayPin, HIGH);
-    delay(500);
-    digitalWrite(relayPin, LOW);
-    delay(100);
-}
+// void CommandHandler::activateRelay() {
+//     digitalWrite(relayPin, HIGH);
+//     delay(500);
+//     digitalWrite(relayPin, LOW);
+//     delay(100);
+// }
 
 // 解析命令参数
 char CommandHandler::getCommandChar(const String& cmd) {
