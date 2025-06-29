@@ -1,12 +1,15 @@
 #include "serial_communication.h"
 #include "command_handler.h"
 
-// 构造函数
+// 构造函数 - 内存优化版本
 SerialCommunication::SerialCommunication(CommandHandler* handler) 
     : commandHandler(handler), serialPort(&Serial), baudRate(115200), isInitialized(false),
-      roiCount(0), inputBuffer(""), stringComplete(false) {
+      roiCount(0), bufferIndex(0), stringComplete(false) {
+    // 初始化字符缓冲区
+    memset(inputBuffer, 0, sizeof(inputBuffer));
+    
     // 初始化 ROI 数据数组
-    for (int i = 0; i < MAX_ROI_COUNT; i++) {
+    for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
         roiDataArray[i] = {0, 0.0, 0.0};
     }
 }
@@ -74,16 +77,17 @@ void SerialCommunication::setBaudRate(unsigned long baud) {
     }
 }
 
-// 数据验证接口（预留，可被子类重写）
-bool SerialCommunication::validateData(const String& data) {
+// 数据验证接口 - 内存优化版本
+bool SerialCommunication::validateData(const char* data) {
     // 默认验证：非空且长度合理
-    return data.length() > 0 && data.length() < 256;
+    return (data != nullptr && strlen(data) > 0 && strlen(data) < 128);
 }
 
-// 错误处理接口（预留，可被子类重写）
-void SerialCommunication::handleError(const String& errorMsg) {
+// 错误处理接口 - 内存优化版本
+void SerialCommunication::handleError(const char* errorMsg) {
     // 默认错误处理：输出错误信息
-    sendLine("ERROR: " + errorMsg);
+    sendMessage(F("ERROR: "));
+    sendLine(errorMsg);
 }
 
 // 数据缓冲区清理
@@ -95,15 +99,21 @@ void SerialCommunication::clearBuffer() {
     }
 }
 
-// ROI 数据处理方法
+// ROI 数据处理方法 - 内存优化版本
 void SerialCommunication::processROIData() {
     // 检查是否有数据可读
     while (serialPort->available()) {
         char inChar = (char)serialPort->read(); // 读取一个字符
-        inputBuffer += inChar; // 将字符添加到字符串中
+        
+        // 防止缓冲区溢出 - 修复类型警告
+        if (bufferIndex < (sizeof(inputBuffer) - 1)) {
+            inputBuffer[bufferIndex] = inChar;
+            bufferIndex++;
+        }
 
         // 检查是否接收到换行符，表示一行数据结束
         if (inChar == '\n') {
+            inputBuffer[bufferIndex] = '\0'; // 添加字符串结束符
             stringComplete = true;
             break;
         }
@@ -111,9 +121,13 @@ void SerialCommunication::processROIData() {
 
     // 如果接收到完整的一行数据，开始解析
     if (stringComplete) {
-        inputBuffer.trim(); // 移除前后空白字符
+        // 移除换行符
+        if (bufferIndex > 0 && inputBuffer[bufferIndex-1] == '\n') {
+            inputBuffer[bufferIndex-1] = '\0';
+            bufferIndex--;
+        }
         
-        if (inputBuffer.length() > 0) {
+        if (bufferIndex > 0) {
             ROIData roiData;
             
             // 尝试解析 ROI 数据
@@ -124,9 +138,9 @@ void SerialCommunication::processROIData() {
                     roiCount++;
 
                     // 向上位机发送 "ACK" 确认
-                    sendLine("ACK");
+                    sendLine(F("ACK"));
                 } else {
-                    sendLine("ROI 数据已满，无法存储更多！");
+                    sendLine(F("ROI full!"));
                 }
             } else {
                 // 不是 ROI 数据格式，当作普通命令处理
@@ -134,32 +148,34 @@ void SerialCommunication::processROIData() {
                     // 标准命令处理
                     commandHandler->processCommand(inputBuffer);
                 } else {
-                    handleError("Invalid data format: " + inputBuffer);
+                    handleError("Invalid data");
                 }
             }
         }
 
-        // 清空字符串和标志位
-        inputBuffer = "";
+        // 清空缓冲区和标志位
+        memset(inputBuffer, 0, sizeof(inputBuffer));
+        bufferIndex = 0;
         stringComplete = false;
     }
 
-    // 检查是否接收到所有数据
+    // 检查是否接收到所有数据 - 内存优化
     if (roiCount == MAX_ROI_COUNT) {
         // 所有数据接收完成后，执行像素坐标到实际移动距离的转换
-        sendLine("所有数据接收完成，开始转换坐标...");
+        sendLine(F("All ROI data received"));
         convertROICoordinates();
-        sendLine("坐标转换完成，准备接收下一组数据！");
+        sendLine(F("Coordinate conversion complete"));
+        clearROIData(); // 处理完后清空数据
     }
 }
 
-// 解析 ROI 字符串
-bool SerialCommunication::parseROIString(const String& input, ROIData& roiData) {
+// 解析 ROI 字符串 - 内存优化版本
+bool SerialCommunication::parseROIString(const char* input, ROIData& roiData) {
     int roiIndex = 0;
     float cx = 0, cy = 0;
 
     // 使用 sscanf 解析字符串
-    if (sscanf(input.c_str(), "ROI%d,X%f,Y%f", &roiIndex, &cx, &cy) == 3) {
+    if (sscanf(input, "ROI%d,X%f,Y%f", &roiIndex, &cx, &cy) == 3) {
         roiData.roiIndex = roiIndex;
         roiData.cx = cx;
         roiData.cy = cy;
@@ -170,29 +186,37 @@ bool SerialCommunication::parseROIString(const String& input, ROIData& roiData) 
 
 // 转换 ROI 坐标
 void SerialCommunication::convertROICoordinates() {
-    for (int i = 0; i < roiCount; i++) {
-        // TODO: 添加像素坐标到实际移动距离的转换逻辑
-        // 示例：假设每像素对应 0.1 mm
-        float actualX = roiDataArray[i].cx * 0.1; // 转换为实际 X 距离
-        float actualY = roiDataArray[i].cy * 0.1; // 转换为实际 Y 距离
+    for (size_t i = 0; i < roiCount; i++) {
+        // 像素坐标到实际移动距离的转换
+        const float PIXEL_TO_MM_X = 0.1;
+        const float PIXEL_TO_MM_Y = 0.1;
 
-        // 打印转换结果（可选）
-        // Serial.print("ROI ");
-        // Serial.print(roiDataArray[i].roiIndex);
-        // Serial.print(": X=");
-        // Serial.print(actualX);
-        // Serial.print(" mm, Y=");
-        // Serial.print(actualY);
-        // Serial.println(" mm");
+        // 直接使用现有的电机控制方法 - 内存优化版本
+        if (commandHandler) {
+            // 计算实际坐标
+            int actualX = (int)(roiDataArray[i].cx * PIXEL_TO_MM_X);
+            int actualY = (int)(roiDataArray[i].cy * PIXEL_TO_MM_Y);
+            
+            // 使用字符数组构造命令，避免String对象
+            char moveCommand[32];
+            snprintf(moveCommand, sizeof(moveCommand), "X%dY%d", actualX, actualY);
+            commandHandler->processCommand(moveCommand);
+            
+            // 调试信息 - 内存优化版本
+            Serial.print(F("Moving to ROI "));
+            Serial.print(roiDataArray[i].roiIndex);
+            Serial.print(F(": X="));
+            Serial.print(actualX);
+            Serial.print(F("mm, Y="));
+            Serial.print(actualY);
+            Serial.println(F("mm"));
+        }
     }
-    
-    // 转换完成后清空数据
-    clearROIData();
 }
 
 // 清空 ROI 数据
 void SerialCommunication::clearROIData() {
-    for (int i = 0; i < MAX_ROI_COUNT; i++) {
+    for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
         roiDataArray[i] = {0, 0.0, 0.0};
     }
     roiCount = 0;
