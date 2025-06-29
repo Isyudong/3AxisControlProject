@@ -32,32 +32,30 @@
  * - 模块可用性检查
 */
 
-// 构造函数
+// 构造函数：设置默认值
 SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* processor) 
     : commandHandler_(handler), 
       roiProcessor_(processor),
-      serialPort_(&Serial), 
-      baudRate_(115200),
+      serialPort_(&Serial),          // 设置默认串口指针
+      baudRate_(115200),             // 设置默认波特率
       isInitialized_(false),
       bufferIndex_(0),
       isStringComplete_(false)
 {
-    // 初始化字符缓冲区
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
 }
 
-// 初始化串口
+// init函数：实际的初始化
 void SerialCommunication::init(unsigned long baudRate) {
-    baudRate_ = baudRate;
-    serialPort_ = &Serial;
-    serialPort_->begin(baudRate_);
-    isInitialized_ = true;
-    sendLine("v"); // 发送初始化完成信号
+    baudRate_ = baudRate;              // 直接设置用户指定的波特率
+    serialPort_->begin(baudRate_);     // 启动硬件
+    isInitialized_ = true;             // 标记已初始化
+    sendLine("v");                     // 发送确认信号
 }
 
 void SerialCommunication::init(HardwareSerial* port, unsigned long baudRate) {
+    serialPort_ = port;            
     baudRate_ = baudRate;
-    serialPort_ = port;
     serialPort_->begin(baudRate_);
     isInitialized_ = true;
     sendLine("v"); // 发送初始化完成信号

@@ -10,11 +10,18 @@ class ROIProcessor;
 // 串口通讯接口类 - 专注于串口通讯功能
 class SerialCommunication {
 private:
-    CommandHandler* commandHandler_;
-    ROIProcessor* roiProcessor_;
-    HardwareSerial* serialPort_;
-    unsigned long baudRate_;
-    bool isInitialized_;
+    // 依赖注入的组件指针 - 用于处理不同类型的命令
+    CommandHandler* commandHandler_;    // 手动模式命令处理器指针，处理调试和手动控制命令
+    ROIProcessor* roiProcessor_;        // ROI数据处理器指针，处理视觉系统传来的感兴趣区域数据
+    
+    // 硬件串口抽象接口
+    HardwareSerial* serialPort_;        // 串口硬件接口指针，可指向Serial、Serial1等不同串口
+    
+    // 串口通信配置参数
+    unsigned long baudRate_;            // 串口波特率设置，默认115200bps，影响数据传输速度
+    
+    // 串口状态管理标志
+    bool isInitialized_;               // 串口初始化状态标志，防止未初始化时进行串口操作
     
     // 串口数据接收缓冲区
     char inputBuffer_[128];
