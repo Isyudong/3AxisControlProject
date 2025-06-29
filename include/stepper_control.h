@@ -8,10 +8,10 @@
 // 步进电机控制类
 class StepperControl {
 private:
-    AccelStepper stepperX;
-    AccelStepper stepperY;
-    AccelStepper stepperZ;
-    int currentStepperNum;
+    AccelStepper stepperX_;
+    AccelStepper stepperY_;
+    AccelStepper stepperZ_;
+    int currentStepperNumber_;
 
 public:
     // 构造函数
@@ -21,7 +21,7 @@ public:
     void init();
     
     // 设置当前控制的电机编号 (0:全部, 1:X轴, 2:Y轴, 3:Z轴)
-    void setCurrentStepper(int stepperNum);
+    void setCurrentStepper(int stepperNumber);
     int getCurrentStepper() const;
     
     // 电机移动控制
@@ -31,8 +31,8 @@ public:
     void setCurrentPosition(int data);
     
     // 电机参数设置
-    void setAcceleration(int data);
-    void setMaxSpeed(int data);
+    void setAcceleration(int accelerationValue);
+    void setMaxSpeed(int maxSpeedValue);
     
     // 获取电机位置信息
     void printPositions();
@@ -47,9 +47,9 @@ public:
     void setZeroPosition();
     
     // 单独控制各轴
-    void moveXTo(int position);
-    void moveYTo(int position);
-    void moveZTo(int position);
+    void moveXAxisTo(int position);
+    void moveYAxisTo(int position);
+    void moveZAxisTo(int position);
     
     // 等待电机到达目标位置
     void waitForCompletion();

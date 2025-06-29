@@ -8,20 +8,20 @@ class StepperControl;
 
 // ROI数据结构
 struct ROIData {
-    int roiIndex;  // ROI区域索引
-    float cx;      // 中心X坐标
-    float cy;      // 中心Y坐标
+    int roiIndex;     // ROI区域索引
+    float centerX;    // 中心X坐标
+    float centerY;    // 中心Y坐标
 };
 
 // ROI处理器类 - 专门处理上位机传来的ROI数据
 class ROIProcessor {
 private:
-    StepperControl* stepperControl;
+    StepperControl* stepperControl_;
     
     // ROI数据存储
     static const int MAX_ROI_COUNT = 10;
-    ROIData roiDataArray[MAX_ROI_COUNT];
-    size_t roiCount;
+    ROIData roiDataArray_[MAX_ROI_COUNT];
+    size_t roiCount_;
     
     // 坐标转换参数
     static constexpr float PIXEL_TO_MM_X = 0.1f;

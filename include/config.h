@@ -1,34 +1,40 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// 宏定义
-#define OneMM 40 // 电机一圈的脉冲数（恢复原始值）
+// 运动参数宏定义
+#define ONE_MM_STEPS 40 // 每毫米对应的步数
 
-// 引脚定义
-const int enablePin = 8; // 使能控制引脚
+// 使能控制引脚
+const int ENABLE_PIN = 8;
 
-const int xdirPin = 5;  // x方向引脚定义
-const int xstepPin = 2; // x驱动引脚定义
+// X轴引脚定义
+const int X_DIR_PIN = 5;   // X轴方向控制引脚
+const int X_STEP_PIN = 2;  // X轴步进控制引脚
 
-const int ydirPin = 6;  // y方向引脚定义
-const int ystepPin = 3; // y驱动引脚定义
+// Y轴引脚定义
+const int Y_DIR_PIN = 6;   // Y轴方向控制引脚
+const int Y_STEP_PIN = 3;  // Y轴步进控制引脚
 
-const int zdirPin = 7;  // z方向引脚定义
-const int zstepPin = 4; // z驱动引脚定义
+// Z轴引脚定义
+const int Z_DIR_PIN = 7;   // Z轴方向控制引脚
+const int Z_STEP_PIN = 4;  // Z轴步进控制引脚
 
-const int relayPin = 9; // 继电器引脚定义
+// 继电器控制引脚
+const int RELAY_PIN = 9;
 
-// 串口通讯常量定义
-const int numCoordinates = 40; // 串口通讯数据长度
+// 串口通讯参数
+const int MAX_COORDINATES = 40; // 最大坐标数量
 
-// 电机参数配置
-const int STEPPER_X_MAX_SPEED = 2000;
-const int STEPPER_X_ACCELERATION = 1000;
+// X轴电机参数
+const int X_AXIS_MAX_SPEED = 2000;
+const int X_AXIS_ACCELERATION = 1000;
 
-const int STEPPER_Y_MAX_SPEED = 2000;
-const int STEPPER_Y_ACCELERATION = 1000;
+// Y轴电机参数
+const int Y_AXIS_MAX_SPEED = 2000;
+const int Y_AXIS_ACCELERATION = 1000;
 
-const int STEPPER_Z_MAX_SPEED = 1000;
-const int STEPPER_Z_ACCELERATION = 500;
+// Z轴电机参数
+const int Z_AXIS_MAX_SPEED = 1000;
+const int Z_AXIS_ACCELERATION = 500;
 
 #endif

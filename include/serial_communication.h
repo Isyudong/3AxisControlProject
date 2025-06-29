@@ -10,24 +10,24 @@ class ROIProcessor;
 // 串口通讯接口类 - 专注于串口通讯功能
 class SerialCommunication {
 private:
-    CommandHandler* commandHandler;
-    ROIProcessor* roiProcessor;
-    HardwareSerial* serialPort;
-    unsigned long baudRate;
-    bool isInitialized;
+    CommandHandler* commandHandler_;
+    ROIProcessor* roiProcessor_;
+    HardwareSerial* serialPort_;
+    unsigned long baudRate_;
+    bool isInitialized_;
     
     // 串口数据接收缓冲区
-    char inputBuffer[128];
-    size_t bufferIndex;
-    bool stringComplete;
+    char inputBuffer_[128];
+    size_t bufferIndex_;
+    bool isStringComplete_;
 
 public:
     // 构造函数
     SerialCommunication(CommandHandler* handler, ROIProcessor* processor);
     
     // 初始化串口
-    void init(unsigned long baud = 115200);
-    void init(HardwareSerial* port, unsigned long baud = 115200);
+    void init(unsigned long baudRate = 115200);
+    void init(HardwareSerial* port, unsigned long baudRate = 115200);
     
     // 检查串口是否有数据可读
     bool isDataAvailable();
@@ -46,7 +46,7 @@ public:
     bool isReady() const;
     
     // 设置波特率
-    void setBaudRate(unsigned long baud);
+    void setBaudRate(unsigned long baudRate);
     
     // 数据验证接口
     virtual bool validateData(const char* data);

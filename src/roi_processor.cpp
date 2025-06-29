@@ -34,10 +34,10 @@
 
 // 构造函数
 ROIProcessor::ROIProcessor(StepperControl* stepper) 
-    : stepperControl(stepper), roiCount(0) {
+    : stepperControl_(stepper), roiCount_(0) {
     // 初始化ROI数据数组
     for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
-        roiDataArray[i] = {0, 0.0, 0.0};
+        roiDataArray_[i] = {0, 0.0f, 0.0f};
     }
 }
 
@@ -46,13 +46,13 @@ bool ROIProcessor::parseROIString(const char* input, ROIData& roiData) {
     if (!input) return false;
     
     int roiIndex = 0;
-    float cx = 0.0f, cy = 0.0f;
+    float centerX = 0.0f, centerY = 0.0f;
     
     // 使用sscanf解析"ROI1,X123.45,Y67.89"格式
-    if (sscanf(input, "ROI%d,X%f,Y%f", &roiIndex, &cx, &cy) == 3) {
+    if (sscanf(input, "ROI%d,X%f,Y%f", &roiIndex, &centerX, &centerY) == 3) {
         roiData.roiIndex = roiIndex;
-        roiData.cx = cx;
-        roiData.cy = cy;
+        roiData.centerX = centerX;
+        roiData.centerY = centerY;
         return true;
     }
     return false;
@@ -60,37 +60,37 @@ bool ROIProcessor::parseROIString(const char* input, ROIData& roiData) {
 
 // 添加ROI数据
 bool ROIProcessor::addROIData(const ROIData& roiData) {
-    if (roiCount >= MAX_ROI_COUNT) {
+    if (roiCount_ >= MAX_ROI_COUNT) {
         Serial.println(F("ROI buffer full!"));
         return false;
     }
     
-    roiDataArray[roiCount] = roiData;
-    roiCount++;
+    roiDataArray_[roiCount_] = roiData;
+    roiCount_++;
     
     Serial.print(F("Added ROI "));
     Serial.print(roiData.roiIndex);
     Serial.print(F(": X="));
-    Serial.print(roiData.cx);
+    Serial.print(roiData.centerX);
     Serial.print(F(", Y="));
-    Serial.println(roiData.cy);
+    Serial.println(roiData.centerY);
     
     return true;
 }
 
 // 处理所有ROI数据
 void ROIProcessor::processAllROI() {
-    if (roiCount == 0) {
+    if (roiCount_ == 0) {
         Serial.println(F("No ROI data to process"));
         return;
     }
     
     Serial.print(F("Processing "));
-    Serial.print(roiCount);
+    Serial.print(roiCount_);
     Serial.println(F(" ROI points"));
     
-    for (size_t i = 0; i < roiCount; i++) {
-        executeROIMovement(roiDataArray[i]);
+    for (size_t i = 0; i < roiCount_; i++) {
+        executeROIMovement(roiDataArray_[i]);
     }
     
     Serial.println(F("All ROI processing complete"));
@@ -98,14 +98,14 @@ void ROIProcessor::processAllROI() {
 
 // 执行单个ROI的移动
 void ROIProcessor::executeROIMovement(const ROIData& roiData) {
-    if (!stepperControl) {
+    if (!stepperControl_) {
         Serial.println(F("Error: StepperControl not initialized"));
         return;
     }
     
     // 转换像素坐标到实际坐标
     int actualX, actualY;
-    convertPixelToMM(roiData.cx, roiData.cy, actualX, actualY);
+    convertPixelToMM(roiData.centerX, roiData.centerY, actualX, actualY);
     
     Serial.print(F("Moving to ROI "));
     Serial.print(roiData.roiIndex);
@@ -116,10 +116,10 @@ void ROIProcessor::executeROIMovement(const ROIData& roiData) {
     Serial.println(F("mm"));
     
     // 执行移动：先移动Y轴，再移动X轴
-    stepperControl->moveYTo(actualY);
+    stepperControl_->moveYAxisTo(actualY);
     waitForMovementComplete();
     
-    stepperControl->moveXTo(actualX);
+    stepperControl_->moveXAxisTo(actualX);
     waitForMovementComplete();
     
     // 在到达位置后可以触发继电器或其他操作
@@ -129,8 +129,8 @@ void ROIProcessor::executeROIMovement(const ROIData& roiData) {
 
 // 等待电机完成移动
 void ROIProcessor::waitForMovementComplete() {
-    while (stepperControl && stepperControl->isAnyRunning()) {
-        stepperControl->run();
+    while (stepperControl_ && stepperControl_->isAnyRunning()) {
+        stepperControl_->run();
         // 可以添加小延时避免占用过多CPU
         delay(1);
     }
@@ -145,21 +145,21 @@ void ROIProcessor::convertPixelToMM(float pixelX, float pixelY, int& mmX, int& m
 // 清空ROI数据
 void ROIProcessor::clearROIData() {
     for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
-        roiDataArray[i] = {0, 0.0, 0.0};
+        roiDataArray_[i] = {0, 0.0f, 0.0f};
     }
-    roiCount = 0;
+    roiCount_ = 0;
     Serial.println(F("ROI data cleared"));
 }
 
 // 状态查询方法
 bool ROIProcessor::isFull() const {
-    return roiCount >= MAX_ROI_COUNT;
+    return roiCount_ >= MAX_ROI_COUNT;
 }
 
 size_t ROIProcessor::getROICount() const {
-    return roiCount;
+    return roiCount_;
 }
 
 bool ROIProcessor::isEmpty() const {
-    return roiCount == 0;
+    return roiCount_ == 0;
 }

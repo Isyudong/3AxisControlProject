@@ -34,38 +34,38 @@
 
 // 构造函数
 SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* processor) 
-    : commandHandler(handler), 
-      roiProcessor(processor),
-      serialPort(&Serial), 
-      baudRate(115200),
-      isInitialized(false),
-      bufferIndex(0),
-      stringComplete(false)
+    : commandHandler_(handler), 
+      roiProcessor_(processor),
+      serialPort_(&Serial), 
+      baudRate_(115200),
+      isInitialized_(false),
+      bufferIndex_(0),
+      isStringComplete_(false)
 {
     // 初始化字符缓冲区
-    memset(inputBuffer, 0, sizeof(inputBuffer));
+    memset(inputBuffer_, 0, sizeof(inputBuffer_));
 }
 
 // 初始化串口
-void SerialCommunication::init(unsigned long baud) {
-    baudRate = baud;
-    serialPort = &Serial;
-    serialPort->begin(baudRate);
-    isInitialized = true;
+void SerialCommunication::init(unsigned long baudRate) {
+    baudRate_ = baudRate;
+    serialPort_ = &Serial;
+    serialPort_->begin(baudRate_);
+    isInitialized_ = true;
     sendLine("v"); // 发送初始化完成信号
 }
 
-void SerialCommunication::init(HardwareSerial* port, unsigned long baud) {
-    baudRate = baud;
-    serialPort = port;
-    serialPort->begin(baudRate);
-    isInitialized = true;
+void SerialCommunication::init(HardwareSerial* port, unsigned long baudRate) {
+    baudRate_ = baudRate;
+    serialPort_ = port;
+    serialPort_->begin(baudRate_);
+    isInitialized_ = true;
     sendLine("v"); // 发送初始化完成信号
 }
 
 // 检查串口是否有数据可读
 bool SerialCommunication::isDataAvailable() {
-    return isInitialized && serialPort->available() > 0;
+    return isInitialized_ && serialPort_->available() > 0;
 }
 
 // 读取串口数据
@@ -73,59 +73,59 @@ String SerialCommunication::readCommand() {
     if (!isDataAvailable()) {
         return "";
     }
-    return serialPort->readStringUntil('\n');
+    return serialPort_->readStringUntil('\n');
 }
 
 // 发送数据到串口
 void SerialCommunication::sendMessage(const String& message) {
-    if (isInitialized) {
-        serialPort->print(message);
+    if (isInitialized_) {
+        serialPort_->print(message);
     }
 }
 
 void SerialCommunication::sendLine(const String& message) {
-    if (isInitialized) {
-        serialPort->println(message);
+    if (isInitialized_) {
+        serialPort_->println(message);
     }
 }
 
 // 处理接收到的数据
 void SerialCommunication::processReceivedData() {
     // 逐字符读取并缓冲
-    while (serialPort->available()) {
-        char inChar = (char)serialPort->read();
+    while (serialPort_->available()) {
+        char inChar = (char)serialPort_->read();
         
         // 防止缓冲区溢出
-        if (bufferIndex < (sizeof(inputBuffer) - 1)) {
-            inputBuffer[bufferIndex] = inChar;
-            bufferIndex++;
+        if (bufferIndex_ < (sizeof(inputBuffer_) - 1)) {
+            inputBuffer_[bufferIndex_] = inChar;
+            bufferIndex_++;
         }
 
         // 检查是否接收到换行符，表示一行数据结束
         if (inChar == '\n') {
-            inputBuffer[bufferIndex] = '\0';
-            stringComplete = true;
+            inputBuffer_[bufferIndex_] = '\0';
+            isStringComplete_ = true;
             break;
         }
     }
 
     // 如果接收到完整的一行数据，开始处理
-    if (stringComplete) {
+    if (isStringComplete_) {
         processCompleteLine();
     }
 }
 
 // 获取串口状态
 bool SerialCommunication::isReady() const {
-    return isInitialized;
+    return isInitialized_;
 }
 
 // 设置波特率
-void SerialCommunication::setBaudRate(unsigned long baud) {
-    baudRate = baud;
-    if (isInitialized) {
-        serialPort->end();
-        serialPort->begin(baudRate);
+void SerialCommunication::setBaudRate(unsigned long baudRate) {
+    baudRate_ = baudRate;
+    if (isInitialized_) {
+        serialPort_->end();
+        serialPort_->begin(baudRate_);
     }
 }
 
@@ -144,9 +144,9 @@ void SerialCommunication::handleError(const char* errorMsg) {
 
 // 数据缓冲区清理
 void SerialCommunication::clearBuffer() {
-    if (isInitialized) {
-        while (serialPort->available() > 0) {
-            serialPort->read();
+    if (isInitialized_) {
+        while (serialPort_->available() > 0) {
+            serialPort_->read();
         }
     }
 }
@@ -154,19 +154,19 @@ void SerialCommunication::clearBuffer() {
 // 处理接收到的完整命令行
 void SerialCommunication::processCompleteLine() {
     // 移除换行符
-    if (bufferIndex > 0 && inputBuffer[bufferIndex-1] == '\n') {
-        inputBuffer[bufferIndex-1] = '\0';
-        bufferIndex--;
+    if (bufferIndex_ > 0 && inputBuffer_[bufferIndex_-1] == '\n') {
+        inputBuffer_[bufferIndex_-1] = '\0';
+        bufferIndex_--;
     }
     
-    if (bufferIndex > 0) {
+    if (bufferIndex_ > 0) {
         // 检查是否为ROI数据
-        if (strncmp(inputBuffer, "ROI", 3) == 0) {
+        if (strncmp(inputBuffer_, "ROI", 3) == 0) {
             // 处理ROI数据
-            if (roiProcessor) {
+            if (roiProcessor_) {
                 ROIData roiData;
-                if (roiProcessor->parseROIString(inputBuffer, roiData)) {
-                    if (roiProcessor->addROIData(roiData)) {
+                if (roiProcessor_->parseROIString(inputBuffer_, roiData)) {
+                    if (roiProcessor_->addROIData(roiData)) {
                         sendLine(F("ACK"));
                     } else {
                         sendLine(F("ROI_FULL"));
@@ -177,23 +177,23 @@ void SerialCommunication::processCompleteLine() {
             } else {
                 handleError("ROI processor not available");
             }
-        } else if (strcmp(inputBuffer, "PROCESS_ROI") == 0) {
+        } else if (strcmp(inputBuffer_, "PROCESS_ROI") == 0) {
             // 处理所有ROI数据的命令
-            if (roiProcessor) {
-                roiProcessor->processAllROI();
+            if (roiProcessor_) {
+                roiProcessor_->processAllROI();
                 sendLine(F("ROI_PROCESSED"));
             }
-        } else if (strcmp(inputBuffer, "CLEAR_ROI") == 0) {
+        } else if (strcmp(inputBuffer_, "CLEAR_ROI") == 0) {
             // 清空ROI数据的命令
-            if (roiProcessor) {
-                roiProcessor->clearROIData();
+            if (roiProcessor_) {
+                roiProcessor_->clearROIData();
                 sendLine(F("ROI_CLEARED"));
             }
         } else {
             // 普通命令处理
-            if (validateData(inputBuffer)) {
-                if (commandHandler) {
-                    commandHandler->processCommand(inputBuffer);
+            if (validateData(inputBuffer_)) {
+                if (commandHandler_) {
+                    commandHandler_->processCommand(inputBuffer_);
                 }
             } else {
                 handleError("Invalid command format");
@@ -202,7 +202,7 @@ void SerialCommunication::processCompleteLine() {
     }
 
     // 清空缓冲区和标志位
-    memset(inputBuffer, 0, sizeof(inputBuffer));
-    bufferIndex = 0;
-    stringComplete = false;
+    memset(inputBuffer_, 0, sizeof(inputBuffer_));
+    bufferIndex_ = 0;
+    isStringComplete_ = false;
 }

@@ -27,166 +27,166 @@
 
 // 构造函数
 StepperControl::StepperControl() 
-    : stepperX(1, xstepPin, xdirPin),
-      stepperY(1, ystepPin, ydirPin),
-      stepperZ(1, zstepPin, zdirPin),
-      currentStepperNum(0)
+    : stepperX_(1, X_STEP_PIN, X_DIR_PIN),
+      stepperY_(1, Y_STEP_PIN, Y_DIR_PIN),
+      stepperZ_(1, Z_STEP_PIN, Z_DIR_PIN),
+      currentStepperNumber_(0)
 {
 }
 
 // 初始化函数
 void StepperControl::init() {
     // 设置引脚状态
-    pinMode(xstepPin, OUTPUT);
-    pinMode(xdirPin, OUTPUT);
-    pinMode(ystepPin, OUTPUT);
-    pinMode(ydirPin, OUTPUT);
-    pinMode(zstepPin, OUTPUT);
-    pinMode(zdirPin, OUTPUT);
+    pinMode(X_STEP_PIN, OUTPUT);
+    pinMode(X_DIR_PIN, OUTPUT);
+    pinMode(Y_STEP_PIN, OUTPUT);
+    pinMode(Y_DIR_PIN, OUTPUT);
+    pinMode(Z_STEP_PIN, OUTPUT);
+    pinMode(Z_DIR_PIN, OUTPUT);
     
-    pinMode(enablePin, OUTPUT);
-    digitalWrite(enablePin, LOW); // 使能电机驱动板
+    pinMode(ENABLE_PIN, OUTPUT);
+    digitalWrite(ENABLE_PIN, LOW); // 使能电机驱动板
     
-    pinMode(relayPin, OUTPUT);
-    digitalWrite(relayPin, LOW);
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, LOW);
     
     // 设置步进电机参数
-    stepperX.setMaxSpeed(STEPPER_X_MAX_SPEED);
-    stepperX.setAcceleration(STEPPER_X_ACCELERATION);
+    stepperX_.setMaxSpeed(X_AXIS_MAX_SPEED);
+    stepperX_.setAcceleration(X_AXIS_ACCELERATION);
     
-    stepperY.setMaxSpeed(STEPPER_Y_MAX_SPEED);
-    stepperY.setAcceleration(STEPPER_Y_ACCELERATION);
+    stepperY_.setMaxSpeed(Y_AXIS_MAX_SPEED);
+    stepperY_.setAcceleration(Y_AXIS_ACCELERATION);
     
-    stepperZ.setMaxSpeed(STEPPER_Z_MAX_SPEED);
-    stepperZ.setAcceleration(STEPPER_Z_ACCELERATION);
+    stepperZ_.setMaxSpeed(Z_AXIS_MAX_SPEED);
+    stepperZ_.setAcceleration(Z_AXIS_ACCELERATION);
     
     // 设置零点
     setZeroPosition();
 }
 
 // 设置当前控制的电机编号
-void StepperControl::setCurrentStepper(int stepperNum) {
-    if (stepperNum >= 0 && stepperNum <= 3) {
-        currentStepperNum = stepperNum;
+void StepperControl::setCurrentStepper(int stepperNumber) {
+    if (stepperNumber >= 0 && stepperNumber <= 3) {
+        currentStepperNumber_ = stepperNumber;
     }
 }
 
 int StepperControl::getCurrentStepper() const {
-    return currentStepperNum;
+    return currentStepperNumber_;
 }
 
 // 电机移动控制
 void StepperControl::moveTo(int data) {
-    switch (currentStepperNum) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.moveTo(data * OneMM);
+            stepperX_.moveTo(data * ONE_MM_STEPS);
             break;
         case 2:
-            stepperY.moveTo(data * OneMM);
+            stepperY_.moveTo(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ.moveTo(data * OneMM);
+            stepperZ_.moveTo(data * ONE_MM_STEPS);
             break;
         case 0:
-            stepperX.moveTo(data * OneMM);
-            stepperY.moveTo(data * OneMM);
-            stepperZ.moveTo(data * OneMM);
+            stepperX_.moveTo(data * ONE_MM_STEPS);
+            stepperY_.moveTo(data * ONE_MM_STEPS);
+            stepperZ_.moveTo(data * ONE_MM_STEPS);
             break;
     }
 }
 
 void StepperControl::move(int data) {
-    switch (currentStepperNum) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.move(data * OneMM);
+            stepperX_.move(data * ONE_MM_STEPS);
             break;
         case 2:
-            stepperY.move(data * OneMM);
+            stepperY_.move(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ.move(data * OneMM);
+            stepperZ_.move(data * ONE_MM_STEPS);
             break;
         case 0:
-            stepperX.move(data * OneMM);
-            stepperY.move(data * OneMM);
-            stepperZ.move(data * OneMM);
+            stepperX_.move(data * ONE_MM_STEPS);
+            stepperY_.move(data * ONE_MM_STEPS);
+            stepperZ_.move(data * ONE_MM_STEPS);
             break;
     }
 }
 
 void StepperControl::runToNewPosition(int data) {
-    switch (currentStepperNum) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.runToNewPosition(data * OneMM);
+            stepperX_.runToNewPosition(data * ONE_MM_STEPS);
             break;
         case 2:
-            stepperY.runToNewPosition(data * OneMM);
+            stepperY_.runToNewPosition(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ.runToNewPosition(data * OneMM);
+            stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
             break;
         case 0:
-            stepperX.runToNewPosition(data * OneMM);
-            stepperY.runToNewPosition(data * OneMM);
-            stepperZ.runToNewPosition(data * OneMM);
+            stepperX_.runToNewPosition(data * ONE_MM_STEPS);
+            stepperY_.runToNewPosition(data * ONE_MM_STEPS);
+            stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
             break;
     }
 }
 
 void StepperControl::setCurrentPosition(int data) {
-    switch (currentStepperNum) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.setCurrentPosition(data * OneMM);
+            stepperX_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
         case 2:
-            stepperY.setCurrentPosition(data * OneMM);
+            stepperY_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ.setCurrentPosition(data * OneMM);
+            stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
         case 0:
-            stepperX.setCurrentPosition(data * OneMM);
-            stepperY.setCurrentPosition(data * OneMM);
-            stepperZ.setCurrentPosition(data * OneMM);
+            stepperX_.setCurrentPosition(data * ONE_MM_STEPS);
+            stepperY_.setCurrentPosition(data * ONE_MM_STEPS);
+            stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
     }
 }
 
 // 电机参数设置
-void StepperControl::setAcceleration(int data) {
-    switch (currentStepperNum) {
+void StepperControl::setAcceleration(int accelerationValue) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.setAcceleration(data);
+            stepperX_.setAcceleration(accelerationValue);
             break;
         case 2:
-            stepperY.setAcceleration(data);
+            stepperY_.setAcceleration(accelerationValue);
             break;
         case 3:
-            stepperZ.setAcceleration(data);
+            stepperZ_.setAcceleration(accelerationValue);
             break;
         case 0:
-            stepperX.setAcceleration(data);
-            stepperY.setAcceleration(data);
-            stepperZ.setAcceleration(data);
+            stepperX_.setAcceleration(accelerationValue);
+            stepperY_.setAcceleration(accelerationValue);
+            stepperZ_.setAcceleration(accelerationValue);
             break;
     }
 }
 
-void StepperControl::setMaxSpeed(int data) {
-    switch (currentStepperNum) {
+void StepperControl::setMaxSpeed(int maxSpeedValue) {
+    switch (currentStepperNumber_) {
         case 1:
-            stepperX.setMaxSpeed(data);
+            stepperX_.setMaxSpeed(maxSpeedValue);
             break;
         case 2:
-            stepperY.setMaxSpeed(data);
+            stepperY_.setMaxSpeed(maxSpeedValue);
             break;
         case 3:
-            stepperZ.setMaxSpeed(data);
+            stepperZ_.setMaxSpeed(maxSpeedValue);
             break;
         case 0:
-            stepperX.setMaxSpeed(data);
-            stepperY.setMaxSpeed(data);
-            stepperZ.setMaxSpeed(data);
+            stepperX_.setMaxSpeed(maxSpeedValue);
+            stepperY_.setMaxSpeed(maxSpeedValue);
+            stepperZ_.setMaxSpeed(maxSpeedValue);
             break;
     }
 }
@@ -194,51 +194,51 @@ void StepperControl::setMaxSpeed(int data) {
 // 获取电机位置信息
 void StepperControl::printPositions() {
     Serial.print(F("stepperX Position: "));
-    Serial.println(stepperX.currentPosition() / OneMM);
+    Serial.println(stepperX_.currentPosition() / ONE_MM_STEPS);
     Serial.print(F("stepperY Position: "));
-    Serial.println(stepperY.currentPosition() / OneMM);
+    Serial.println(stepperY_.currentPosition() / ONE_MM_STEPS);
     Serial.print(F("stepperZ Position: "));
-    Serial.println(stepperZ.currentPosition() / OneMM);
+    Serial.println(stepperZ_.currentPosition() / ONE_MM_STEPS);
     Serial.print(F("Current Running Motor: "));
     
-    if (currentStepperNum == 1 || currentStepperNum == 2 || currentStepperNum == 3) {
+    if (currentStepperNumber_ == 1 || currentStepperNumber_ == 2 || currentStepperNumber_ == 3) {
         Serial.print(F("Motor# "));
-        Serial.println(currentStepperNum);
-    } else if (currentStepperNum == 0) {
+        Serial.println(currentStepperNumber_);
+    } else if (currentStepperNumber_ == 0) {
         Serial.println(F("All Motors"));
     }
 }
 
 // 检查电机是否在运行
 bool StepperControl::isAnyRunning() {
-    return stepperX.isRunning() || stepperY.isRunning() || stepperZ.isRunning();
+    return stepperX_.isRunning() || stepperY_.isRunning() || stepperZ_.isRunning();
 }
 
 // 运行电机
 void StepperControl::run() {
-    stepperX.run();
-    stepperY.run();
-    stepperZ.run();
+    stepperX_.run();
+    stepperY_.run();
+    stepperZ_.run();
 }
 
 // 设置零点
 void StepperControl::setZeroPosition() {
-    stepperX.setCurrentPosition(0);
-    stepperY.setCurrentPosition(0);
-    stepperZ.setCurrentPosition(0);
+    stepperX_.setCurrentPosition(0);
+    stepperY_.setCurrentPosition(0);
+    stepperZ_.setCurrentPosition(0);
 }
 
 // 单独控制各轴
-void StepperControl::moveXTo(int position) {
-    stepperX.moveTo(position * OneMM);
+void StepperControl::moveXAxisTo(int position) {
+    stepperX_.moveTo(position * ONE_MM_STEPS);
 }
 
-void StepperControl::moveYTo(int position) {
-    stepperY.moveTo(position * OneMM);
+void StepperControl::moveYAxisTo(int position) {
+    stepperY_.moveTo(position * ONE_MM_STEPS);
 }
 
-void StepperControl::moveZTo(int position) {
-    stepperZ.moveTo(position * OneMM);
+void StepperControl::moveZAxisTo(int position) {
+    stepperZ_.moveTo(position * ONE_MM_STEPS);
 }
 
 // 等待电机到达目标位置
