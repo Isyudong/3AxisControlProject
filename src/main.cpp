@@ -16,6 +16,7 @@ void setup() // 初始化函数
 
   // 初始化串口通信
   serialComm.init(115200);
+  Serial.println("系统已启动")
 }
 
 void loop() // 循环函数
