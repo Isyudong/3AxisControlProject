@@ -87,7 +87,7 @@ void SerialCommunication::sendLine(const String& message) {
     }
 }
 
-// 处理接收到的数据
+// 处理接收到的数据，先进行清洗防止串口缓冲溢出，然后传递给私有函数processCompleteLine（）处理
 void SerialCommunication::processReceivedData() {
     // 逐字符读取并缓冲
     while (serialPort_->available()) {
