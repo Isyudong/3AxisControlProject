@@ -22,9 +22,11 @@
  * 'D' 用户通过此指令可指定哪一个电机进行工作  
  *     例：d1 一号电机工作，d2 二号电机工作,d3 一号电机工作 d0 电机同时工作
 */
+
 // 构造函数
 CommandHandler::CommandHandler(StepperControl* stepper) 
-    : stepperControl_(stepper), isHandMode_(false) {
+    : stepperControl_(stepper),
+      isHandMode_(false) {
 }
 
 // 设置和获取模式

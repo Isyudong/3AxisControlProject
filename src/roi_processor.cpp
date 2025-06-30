@@ -115,10 +115,9 @@ void ROIProcessor::executeROIMovement(const ROIData& roiData) {
     Serial.print(actualY);
     Serial.println(F("mm"));
     
-    // 执行移动：先移动Y轴，再移动X轴
+    // 执行移动,同步进行！
     stepperControl_->moveYAxisTo(actualY);
-    waitForMovementComplete();
-    
+    // waitForMovementComplete();
     stepperControl_->moveXAxisTo(actualX);
     waitForMovementComplete();
     
