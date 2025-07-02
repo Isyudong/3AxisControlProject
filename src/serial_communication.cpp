@@ -156,67 +156,96 @@ void SerialCommunication::clearBuffer() {
     }
 }
 
-// 处理接收到的完整命令行
+// 批次状态变量
+bool batch_in_progress_ = false;
+int expected_target_count_ = 0;
+int processed_target_count_ = 0;
+
+// 批次状态重置
+void SerialCommunication::resetBatchState() {
+    batch_in_progress_ = false;
+    expected_target_count_ = 0;
+    processed_target_count_ = 0;
+}
+
+// 处理完整命令行（新协议）
 void SerialCommunication::processCompleteLine() {
     // 移除换行符
     if (bufferIndex_ > 0 && inputBuffer_[bufferIndex_-1] == '\n') {
         inputBuffer_[bufferIndex_-1] = '\0';
         bufferIndex_--;
     }
-    
     if (bufferIndex_ > 0) {
-        // 检查是否为ROI数据
-        if (strncmp(inputBuffer_, "ROI", 3) == 0) {
-            // 处理ROI数据 - 流处理模式
-            SerialROIData roiData;
-            String inputStr = String(inputBuffer_);
-            
-            if (parseROIString(inputStr, roiData)) {
-                // 立即处理ROI数据
-                processIndividualROI(roiData);
-                totalProcessedCount_++;
-                
-                // 发送成功确认
-                sendACK(roiData.roiIndex, true);
-                
-                // 调试信息
-                Serial.print(F("已处理ROI: "));
-                Serial.print(roiData.roiIndex);
-                Serial.print(F(" 总计: "));
-                Serial.println(totalProcessedCount_);
-            } else {
-                // 解析失败，发送失败确认
-                sendACK(0, false);
-                handleError("Invalid ROI format");
-            }
-        } else if (strcmp(inputBuffer_, "PROCESS_ROI") == 0) {
-            // 处理所有ROI数据的命令（保持兼容性）
-            if (roiProcessor_) {
-                roiProcessor_->processAllROI();
-                sendLine(F("ROI_PROCESSED"));
-            }
-        } else if (strcmp(inputBuffer_, "CLEAR_ROI") == 0) {
-            // 清空ROI数据的命令（保持兼容性）
-            if (roiProcessor_) {
-                roiProcessor_->clearROIData();
-                sendLine(F("ROI_CLEARED"));
-            }
-        } else if (strcmp(inputBuffer_, "ROI_STATS") == 0) {
-            // 获取ROI处理统计信息
-            Serial.print(F("Total ROI processed: "));
-            Serial.println(totalProcessedCount_);
-        } else {
-            // 普通命令处理
-            if (validateData(inputBuffer_)) {
-                if (commandHandler_) {
-                    commandHandler_->processCommand(inputBuffer_);
+        String msg(inputBuffer_);
+        msg.trim();
+        if (msg.startsWith("BATCH_START")) {
+            int count_index = msg.indexOf("COUNT=");
+            if (count_index != -1) {
+                int count = msg.substring(count_index + 6).toInt();
+                if (count > 0 && count <= 2000) {
+                    resetBatchState();
+                    expected_target_count_ = count;
+                    batch_in_progress_ = true;
+                    sendLine("BATCH_READY");
+                } else {
+                    sendLine("ERROR: Invalid target count");
                 }
             } else {
-                handleError("Invalid command format");
+                sendLine("ERROR: Invalid BATCH_START format");
+            }
+        } else if (msg.startsWith("TARGET")) {
+            if (!batch_in_progress_ || expected_target_count_ == 0) {
+                sendLine("ERROR: Batch not started");
+            } else {
+                // 解析SEQ、X、Y
+                int seq_index = msg.indexOf("SEQ=");
+                int x_index = msg.indexOf("X");
+                int y_index = msg.indexOf("Y");
+                int comma1 = msg.indexOf(',', seq_index);
+                int comma2 = msg.indexOf(',', x_index);
+                if (seq_index != -1 && x_index != -1 && y_index != -1 && comma1 != -1 && comma2 != -1) {
+                    int seq = msg.substring(seq_index + 4, comma1).toInt();
+                    float x = msg.substring(x_index + 1, comma2).toFloat();
+                    float y = msg.substring(y_index + 1).toFloat();
+                    if (seq > 0) {
+                        // 执行目标处理
+                        if (stepperControl_) {
+                            int mmX = (int)x;
+                            int mmY = (int)y;
+                            stepperControl_->moveYAxisTo(mmY);
+                            while (stepperControl_->isAnyRunning()) stepperControl_->run();
+                            stepperControl_->moveXAxisTo(mmX);
+                            while (stepperControl_->isAnyRunning()) stepperControl_->run();
+                        }
+                        processed_target_count_++;
+                        sendLine("TARGET_DONE,SEQ=" + String(seq));
+                    } else {
+                        sendLine("ERROR: Invalid target format");
+                    }
+                } else {
+                    sendLine("ERROR: Invalid TARGET format");
+                }
+            }
+        } else if (msg.startsWith("BATCH_COMPLETE")) {
+            if (!batch_in_progress_) {
+                sendLine("ERROR: Batch not started");
+            } else {
+                // 归零三轴
+                if (stepperControl_) {
+                    stepperControl_->homeAllAxes();
+                }
+                sendLine("BATCH_FINISHED");
+                resetBatchState();
+            }
+        } else {
+            // 新增：转发到手动调试命令处理
+            if (commandHandler_) {
+                commandHandler_->processCommand(inputBuffer_);
+            } else {
+                sendLine("ERROR: Unknown command");
             }
         }
     }
-
     // 清空缓冲区和标志位
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
     bufferIndex_ = 0;
@@ -287,4 +316,10 @@ void SerialCommunication::clearBatchBuffer() {
         batchBuffer_[i] = {0, 0.0, 0.0};
     }
     currentBatchCount_ = 0;
+}
+
+// 新增：重置批次计数
+void SerialCommunication::resetROICount() {
+    expectedROICount_ = 0;
+    processedROICount_ = 0;
 }

@@ -38,6 +38,10 @@ private:
     int currentBatchCount_;            // 当前批次已接收的ROI数量
     int totalProcessedCount_;          // 总共已处理的ROI数量
     
+    // 新增：批次ROI数量与计数
+    int expectedROICount_ = 0;   // 本批次应处理ROI数量
+    int processedROICount_ = 0;  // 本批次已处理ROI数量
+    
     // 串口数据接收缓冲区
     char inputBuffer_[128];
     size_t bufferIndex_;
@@ -81,6 +85,12 @@ public:
     void processIndividualROI(const SerialROIData& roiData);
     void sendACK(int roiIndex, bool success);
     void clearBatchBuffer();
+    
+    // 新增：重置批次计数
+    void resetROICount();
+    
+    // 批次状态重置
+    void resetBatchState();
 
 private:
     // 数据缓冲区清理
