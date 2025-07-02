@@ -4,7 +4,7 @@
  * init() - 初始化三轴步进电机，设置引脚、速度和加速度参数
  * run() - 持续运行电机控制，必须在主循环中调用以保证电机正常运转
  * moveTo(data) - 移动当前选中电机到绝对位置，非阻塞式
- * move(data) - 移动当前选中电机相对距离，非阻塞式
+ * move(data) - 移动当前
  * runToNewPosition(data) - 移动到绝对位置，阻塞式，等待到达后才返回
  * setCurrentPosition(data) - 设置当前位置值，用于零点校准
  * setAcceleration(data) - 设置当前选中电机的加速度
@@ -246,4 +246,13 @@ void StepperControl::waitForCompletion() {
     while (isAnyRunning()) {
         run();
     }
+}
+
+// 归零所有轴：移动到0位置并等待完成
+void StepperControl::homeAllAxes() {
+    moveXAxisTo(0);
+    moveYAxisTo(0);
+    moveZAxisTo(0);
+    waitForCompletion();
+    setZeroPosition(); // 可选：归零后重置当前位置为0
 }

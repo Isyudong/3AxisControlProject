@@ -94,6 +94,13 @@ void ROIProcessor::processAllROI() {
     }
     
     Serial.println(F("All ROI processing complete"));
+    // 处理完所有ROI后归零
+    if (stepperControl_) {
+        Serial.println(F("Homing all axes..."));
+        stepperControl_->homeAllAxes();
+        waitForMovementComplete();
+        Serial.println(F("All axes homed"));
+    }
 }
 
 // 执行单个ROI的移动
