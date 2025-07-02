@@ -33,16 +33,23 @@
 */
 
 // 构造函数：设置默认值
-SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* processor) 
+SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* processor, StepperControl* stepper) 
     : commandHandler_(handler), 
       roiProcessor_(processor),
+      stepperControl_(stepper),
       serialPort_(&Serial),          // 设置默认串口指针
       baudRate_(115200),             // 设置默认波特率
       isInitialized_(false),
+      currentBatchCount_(0),         // 初始化批次计数
+      totalProcessedCount_(0),       // 初始化总处理计数
       bufferIndex_(0),
       isStringComplete_(false)
 {
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
+    // 初始化批次缓冲区
+    for (int i = 0; i < BATCH_BUFFER_SIZE; i++) {
+        batchBuffer_[i] = {0, 0.0, 0.0};
+    }
 }
 
 // init函数：实际的初始化
@@ -160,33 +167,44 @@ void SerialCommunication::processCompleteLine() {
     if (bufferIndex_ > 0) {
         // 检查是否为ROI数据
         if (strncmp(inputBuffer_, "ROI", 3) == 0) {
-            // 处理ROI数据
-            if (roiProcessor_) {
-                ROIData roiData;
-                if (roiProcessor_->parseROIString(inputBuffer_, roiData)) {
-                    if (roiProcessor_->addROIData(roiData)) {
-                        sendLine(F("ACK"));
-                    } else {
-                        sendLine(F("ROI_FULL"));
-                    }
-                } else {
-                    handleError("Invalid ROI format");
-                }
+            // 处理ROI数据 - 流处理模式
+            SerialROIData roiData;
+            String inputStr = String(inputBuffer_);
+            
+            if (parseROIString(inputStr, roiData)) {
+                // 立即处理ROI数据
+                processIndividualROI(roiData);
+                totalProcessedCount_++;
+                
+                // 发送成功确认
+                sendACK(roiData.roiIndex, true);
+                
+                // 调试信息
+                Serial.print(F("已处理ROI: "));
+                Serial.print(roiData.roiIndex);
+                Serial.print(F(" 总计: "));
+                Serial.println(totalProcessedCount_);
             } else {
-                handleError("ROI processor not available");
+                // 解析失败，发送失败确认
+                sendACK(0, false);
+                handleError("Invalid ROI format");
             }
         } else if (strcmp(inputBuffer_, "PROCESS_ROI") == 0) {
-            // 处理所有ROI数据的命令
+            // 处理所有ROI数据的命令（保持兼容性）
             if (roiProcessor_) {
                 roiProcessor_->processAllROI();
                 sendLine(F("ROI_PROCESSED"));
             }
         } else if (strcmp(inputBuffer_, "CLEAR_ROI") == 0) {
-            // 清空ROI数据的命令
+            // 清空ROI数据的命令（保持兼容性）
             if (roiProcessor_) {
                 roiProcessor_->clearROIData();
                 sendLine(F("ROI_CLEARED"));
             }
+        } else if (strcmp(inputBuffer_, "ROI_STATS") == 0) {
+            // 获取ROI处理统计信息
+            Serial.print(F("Total ROI processed: "));
+            Serial.println(totalProcessedCount_);
         } else {
             // 普通命令处理
             if (validateData(inputBuffer_)) {
@@ -203,4 +221,70 @@ void SerialCommunication::processCompleteLine() {
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
     bufferIndex_ = 0;
     isStringComplete_ = false;
+}
+
+// ROI数据流处理方法实现
+
+// 解析 ROI 字符串
+bool SerialCommunication::parseROIString(const String& input, SerialROIData& roiData) {
+    // 检查基本格式
+    if (!input.startsWith("ROI")) {
+        return false;
+    }
+    
+    // 查找分隔符位置
+    int firstComma = input.indexOf(',');
+    int xPos = input.indexOf('X');
+    int secondComma = input.indexOf(',', firstComma + 1);
+    int yPos = input.indexOf('Y');
+    
+    if (firstComma == -1 || xPos == -1 || secondComma == -1 || yPos == -1) {
+        return false;
+    }
+    
+    // 提取各部分
+    String roiStr = input.substring(3, firstComma); // 跳过"ROI"
+    String xStr = input.substring(xPos + 1, secondComma); // 跳过"X"
+    String yStr = input.substring(yPos + 1); // 跳过"Y"
+    
+    // 转换为数值
+    roiData.roiIndex = roiStr.toInt();
+    roiData.cx = xStr.toFloat();
+    roiData.cy = yStr.toFloat();
+    
+    // 验证转换结果
+    if (roiData.roiIndex <= 0) {
+        return false;
+    }
+    
+    return true;
+}
+
+// 立即处理单个ROI数据（流处理模式）
+void SerialCommunication::processIndividualROI(const SerialROIData& roiData) {
+    float targetX = roiData.cx;
+    float targetY = roiData.cy;
+    if (stepperControl_) {
+        int stepX = (int)targetX;
+        int stepY = (int)targetY;
+        stepperControl_->moveXAxisTo(stepX);
+        stepperControl_->moveYAxisTo(stepY);
+    }
+}
+
+// 发送应答消息给上位机
+void SerialCommunication::sendACK(int roiIndex, bool success) {
+    if (success) {
+        sendLine("ACK_ROI" + String(roiIndex));
+    } else {
+        sendLine("NACK_ROI" + String(roiIndex));
+    }
+}
+
+// 清空批次缓冲区
+void SerialCommunication::clearBatchBuffer() {
+    for (int i = 0; i < BATCH_BUFFER_SIZE; i++) {
+        batchBuffer_[i] = {0, 0.0, 0.0};
+    }
+    currentBatchCount_ = 0;
 }

@@ -53,8 +53,27 @@ void CommandHandler::processCommand(const String& command) {
     }
     else {
         // 自动模式下的其他命令处理
-        Serial.println("AutoMode: Command received but not processed by CommandHandler");
-        Serial.println("Note: ROI data should be handled by ROIProcessor");
+        if (command == "H" || command == "HELP") {
+            printHelpMessage();
+        }
+        else if (command == "TEST") {
+            testAllAxes();
+        }
+        else if (command == "O") {
+            // 允许在自动模式下查询位置
+            Serial.println(F("=== Current Positions (Auto Mode) ==="));
+            stepperControl_->printPositions();
+        }
+        else if (command.startsWith("ROI")) {
+            // ROI命令提示 - 应该由SerialCommunication处理
+            Serial.println(F("Note: ROI data is handled by ROI stream processor"));
+        }
+        else {
+            // 未知命令
+            Serial.print(F("AutoMode: Unknown command '"));
+            Serial.print(command);
+            Serial.println(F("' - Use 'H' for help"));
+        }
     }
 }
 

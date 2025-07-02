@@ -6,6 +6,14 @@
 // 前向声明避免循环依赖
 class CommandHandler;
 class ROIProcessor;
+class StepperControl;
+
+// 串口通信专用的ROI数据结构
+struct SerialROIData {
+    int roiIndex;  // ROI 区域索引
+    float cx;      // 中心 X 坐标
+    float cy;      // 中心 Y 坐标
+};
 
 // 串口通讯接口类 - 专注于串口通讯功能
 class SerialCommunication {
@@ -13,6 +21,7 @@ private:
     // 依赖注入的组件指针 - 用于处理不同类型的命令
     CommandHandler* commandHandler_;    // 手动模式命令处理器指针，处理调试和手动控制命令
     ROIProcessor* roiProcessor_;        // ROI数据处理器指针，处理视觉系统传来的感兴趣区域数据
+    StepperControl* stepperControl_;    // 步进电机控制器指针，用于直接控制电机移动
     
     // 硬件串口抽象接口
     HardwareSerial* serialPort_;        // 串口硬件接口指针，可指向Serial、Serial1等不同串口
@@ -23,6 +32,12 @@ private:
     // 串口状态管理标志
     bool isInitialized_;               // 串口初始化状态标志，防止未初始化时进行串口操作
     
+    // ROI数据流处理相关成员
+    static const int BATCH_BUFFER_SIZE = 10; // 每批最多缓存10个ROI数据
+    SerialROIData batchBuffer_[BATCH_BUFFER_SIZE];
+    int currentBatchCount_;            // 当前批次已接收的ROI数量
+    int totalProcessedCount_;          // 总共已处理的ROI数量
+    
     // 串口数据接收缓冲区
     char inputBuffer_[128];
     size_t bufferIndex_;
@@ -30,7 +45,7 @@ private:
 
 public:
     // 构造函数
-    SerialCommunication(CommandHandler* handler, ROIProcessor* processor);
+    SerialCommunication(CommandHandler* handler, ROIProcessor* processor, StepperControl* stepper);
     
     // 初始化串口
     void init(unsigned long baudRate = 115200);
@@ -60,6 +75,12 @@ public:
     
     // 错误处理接口
     virtual void handleError(const char* errorMsg);
+    
+    // ROI数据流处理方法
+    bool parseROIString(const String& input, SerialROIData& roiData);
+    void processIndividualROI(const SerialROIData& roiData);
+    void sendACK(int roiIndex, bool success);
+    void clearBatchBuffer();
 
 private:
     // 数据缓冲区清理
