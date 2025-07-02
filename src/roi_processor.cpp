@@ -3,11 +3,20 @@
 #include <Arduino.h>
 
 /*
+ROIProcessor - ROI视觉数据处理模块
+-----------------------------------
+- 主要职责：负责单点ROI坐标的解析、像素到毫米转换、运动执行。
+- 典型流程：
+  1. 解析ROI字符串（如 "ROI1,X123.45,Y67.89"）
+  2. 坐标转换（像素→毫米）
+  3. 运动顺序：先Y轴，后X轴，运动完成可扩展触发动作
+- 适配高内聚低耦合架构，便于维护和扩展
+*/
+
+/*
 目标功能：ROI视觉数据处理模块 - 专门处理上位机传来的ROI坐标数据
  * parseROIString(input, roiData) - 解析ROI字符串格式 "ROI1,X123.45,Y67.89"
- * addROIData(roiData) - 添加ROI数据到缓冲区，最多存储10个ROI点
- * processAllROI() - 处理所有已存储的ROI数据，执行坐标移动
- * clearROIData() - 清空ROI数据缓冲区
+ * executeROIMovement(roiData) - 执行单个ROI的运动
  * convertPixelToMM(pixelX, pixelY, mmX, mmY) - 像素坐标转换为实际毫米坐标
  * 
  * ROI数据格式:
@@ -32,11 +41,7 @@
 
 // 构造函数
 ROIProcessor::ROIProcessor(StepperControl* stepper) 
-    : stepperControl_(stepper), roiCount_(0) {
-    // 初始化ROI数据数组
-    for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
-        roiDataArray_[i] = {0, 0.0f, 0.0f};
-    }
+    : stepperControl_(stepper) {
 }
 
 // 解析ROI字符串
@@ -56,45 +61,7 @@ bool ROIProcessor::parseROIString(const char* input, ROIData& roiData) {
     return false;
 }
 
-// 添加ROI数据
-bool ROIProcessor::addROIData(const ROIData& roiData) {
-    if (roiCount_ >= MAX_ROI_COUNT) {
-        Serial.println(F("ROI buffer full!"));
-        return false;
-    }
-    
-    roiDataArray_[roiCount_] = roiData;
-    roiCount_++;
-    
-    Serial.print(F("Added ROI "));
-    Serial.print(roiData.roiIndex);
-    Serial.print(F(": X="));
-    Serial.print(roiData.centerX);
-    Serial.print(F(", Y="));
-    Serial.println(roiData.centerY);
-    
-    return true;
-}
-
-// 处理所有ROI数据
-void ROIProcessor::processAllROI() {
-    if (roiCount_ == 0) {
-        Serial.println(F("No ROI data to process"));
-        return;
-    }
-    
-    Serial.print(F("Processing "));
-    Serial.print(roiCount_);
-    Serial.println(F(" ROI points"));
-    
-    for (size_t i = 0; i < roiCount_; i++) {
-        executeROIMovement(roiDataArray_[i]);
-    }
-    
-    Serial.println(F("All ROI processing complete"));
-}
-
-// 执行单个ROI的移动
+// 单点ROI运动
 void ROIProcessor::executeROIMovement(const ROIData& roiData) {
     if (!stepperControl_) {
         Serial.println(F("Error: StepperControl not initialized"));
@@ -139,24 +106,15 @@ void ROIProcessor::convertPixelToMM(float pixelX, float pixelY, int& mmX, int& m
     mmY = static_cast<int>(pixelY * PIXEL_TO_MM_Y);
 }
 
-// 清空ROI数据
-void ROIProcessor::clearROIData() {
-    for (size_t i = 0; i < MAX_ROI_COUNT; i++) {
-        roiDataArray_[i] = {0, 0.0f, 0.0f};
-    }
-    roiCount_ = 0;
-    Serial.println(F("ROI data cleared"));
-}
+// // 状态查询方法
+// bool ROIProcessor::isFull() const {
+//     return roiCount_ >= MAX_ROI_COUNT;
+// }
 
-// 状态查询方法
-bool ROIProcessor::isFull() const {
-    return roiCount_ >= MAX_ROI_COUNT;
-}
+// size_t ROIProcessor::getROICount() const {
+//     return roiCount_;
+// }
 
-size_t ROIProcessor::getROICount() const {
-    return roiCount_;
-}
-
-bool ROIProcessor::isEmpty() const {
-    return roiCount_ == 0;
-}
+// bool ROIProcessor::isEmpty() const {
+//     return roiCount_ == 0;
+// }

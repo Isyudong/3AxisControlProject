@@ -53,6 +53,9 @@ public:
     
     // 等待电机到达目标位置
     void waitForCompletion();
+
+    // 归零所有轴
+    void homeAllAxes();
 };
 
 #endif

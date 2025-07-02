@@ -6,6 +6,7 @@
 // 前向声明避免循环依赖
 class CommandHandler;
 class ROIProcessor;
+class StepperControl;
 
 // 串口通讯接口类 - 专注于串口通讯功能
 class SerialCommunication {
@@ -13,6 +14,7 @@ private:
     // 依赖注入的组件指针 - 用于处理不同类型的命令
     CommandHandler* commandHandler_;    // 手动模式命令处理器指针，处理调试和手动控制命令
     ROIProcessor* roiProcessor_;        // ROI数据处理器指针，处理视觉系统传来的感兴趣区域数据
+    StepperControl* stepperControl_;    // 步进电机控制器指针，用于直接控制电机移动
     
     // 硬件串口抽象接口
     HardwareSerial* serialPort_;        // 串口硬件接口指针，可指向Serial、Serial1等不同串口
@@ -28,9 +30,14 @@ private:
     size_t bufferIndex_;
     bool isStringComplete_;
 
+    // 批次处理状态
+    bool batch_in_progress_;
+    int expected_target_count_;
+    int processed_target_count_;
+
 public:
     // 构造函数
-    SerialCommunication(CommandHandler* handler, ROIProcessor* processor);
+    SerialCommunication(CommandHandler* handler, ROIProcessor* processor, StepperControl* stepper);
     
     // 初始化串口
     void init(unsigned long baudRate = 115200);
@@ -60,6 +67,9 @@ public:
     
     // 错误处理接口
     virtual void handleError(const char* errorMsg);
+
+    // 重置批次状态
+    void resetBatchState();
 
 private:
     // 数据缓冲区清理
