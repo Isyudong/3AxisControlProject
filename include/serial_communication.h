@@ -8,13 +8,6 @@ class CommandHandler;
 class ROIProcessor;
 class StepperControl;
 
-// 串口通信专用的ROI数据结构
-struct SerialROIData {
-    int roiIndex;  // ROI 区域索引
-    float cx;      // 中心 X 坐标
-    float cy;      // 中心 Y 坐标
-};
-
 // 串口通讯接口类 - 专注于串口通讯功能
 class SerialCommunication {
 private:
@@ -32,20 +25,15 @@ private:
     // 串口状态管理标志
     bool isInitialized_;               // 串口初始化状态标志，防止未初始化时进行串口操作
     
-    // ROI数据流处理相关成员
-    static const int BATCH_BUFFER_SIZE = 10; // 每批最多缓存10个ROI数据
-    SerialROIData batchBuffer_[BATCH_BUFFER_SIZE];
-    int currentBatchCount_;            // 当前批次已接收的ROI数量
-    int totalProcessedCount_;          // 总共已处理的ROI数量
-    
-    // 新增：批次ROI数量与计数
-    int expectedROICount_ = 0;   // 本批次应处理ROI数量
-    int processedROICount_ = 0;  // 本批次已处理ROI数量
-    
     // 串口数据接收缓冲区
     char inputBuffer_[128];
     size_t bufferIndex_;
     bool isStringComplete_;
+
+    // 批次处理状态
+    bool batch_in_progress_;
+    int expected_target_count_;
+    int processed_target_count_;
 
 public:
     // 构造函数
@@ -79,17 +67,8 @@ public:
     
     // 错误处理接口
     virtual void handleError(const char* errorMsg);
-    
-    // ROI数据流处理方法
-    bool parseROIString(const String& input, SerialROIData& roiData);
-    void processIndividualROI(const SerialROIData& roiData);
-    void sendACK(int roiIndex, bool success);
-    void clearBatchBuffer();
-    
-    // 新增：重置批次计数
-    void resetROICount();
-    
-    // 批次状态重置
+
+    // 重置批次状态
     void resetBatchState();
 
 private:

@@ -3,33 +3,13 @@
 #include "roi_processor.h"
 
 /*
-目标功能：串口通讯协议处理模块 - 专注于数据收发和协议解析
- * init(baud) - 初始化串口通信，默认115200波特率，发送"v"确认信号
- * processReceivedData() - 处理接收到的串口数据，逐字符缓冲直到收到完整命令行
- * sendMessage(msg) - 发送消息到串口，不添加换行符
- * sendLine(msg) - 发送消息到串口，自动添加换行符
- * isDataAvailable() - 检查串口是否有数据可读
- * isReady() - 检查串口是否已初始化完成
- * 
- * 支持的数据类型和命令:
- * 1. ROI数据格式: "ROI1,X123.45,Y67.89" - 自动转发给ROIProcessor处理
- * 2. ROI管理命令: 
- *    - "PROCESS_ROI" - 处理所有已接收的ROI数据
- *    - "CLEAR_ROI" - 清空ROI数据缓存
- * 3. 手动调试命令: 转发给CommandHandler处理
- * 
- * 响应消息:
- * "ACK" - ROI数据接收确认
- * "ROI_FULL" - ROI缓存已满
- * "ROI_PROCESSED" - ROI处理完成  
- * "ROI_CLEARED" - ROI数据已清空
- * "ERROR: xxx" - 错误信息
- * 
- * 安全特性:
- * - 缓冲区溢出保护 (128字节限制)
- * - 数据格式验证
- * - 空指针检查
- * - 模块可用性检查
+SerialCommunication - 串口通讯协议处理模块
+----------------------------------------
+- 自动模式：严格遵循上位机批量协议（BATCH_START、TARGET、BATCH_COMPLETE等），实时应答。
+- 手动模式：转发所有命令到CommandHandler，支持调试命令。
+- 负责串口数据收发、协议解析、错误处理。
+- 支持自动/手动模式随时切换，开发生产两不误。
+- 高内聚低耦合，便于维护和扩展。
 */
 
 // 构造函数：设置默认值
@@ -40,16 +20,13 @@ SerialCommunication::SerialCommunication(CommandHandler* handler, ROIProcessor* 
       serialPort_(&Serial),          // 设置默认串口指针
       baudRate_(115200),             // 设置默认波特率
       isInitialized_(false),
-      currentBatchCount_(0),         // 初始化批次计数
-      totalProcessedCount_(0),       // 初始化总处理计数
       bufferIndex_(0),
-      isStringComplete_(false)
+      isStringComplete_(false),
+      batch_in_progress_(false),
+      expected_target_count_(0),
+      processed_target_count_(0)
 {
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
-    // 初始化批次缓冲区
-    for (int i = 0; i < BATCH_BUFFER_SIZE; i++) {
-        batchBuffer_[i] = {0, 0.0, 0.0};
-    }
 }
 
 // init函数：实际的初始化
@@ -156,16 +133,11 @@ void SerialCommunication::clearBuffer() {
     }
 }
 
-// 批次状态变量
-bool batch_in_progress_ = false;
-int expected_target_count_ = 0;
-int processed_target_count_ = 0;
-
 // 批次状态重置
 void SerialCommunication::resetBatchState() {
-    batch_in_progress_ = false;
-    expected_target_count_ = 0;
-    processed_target_count_ = 0;
+    this->batch_in_progress_ = false;
+    this->expected_target_count_ = 0;
+    this->processed_target_count_ = 0;
 }
 
 // 处理完整命令行（新协议）
@@ -183,9 +155,9 @@ void SerialCommunication::processCompleteLine() {
             if (count_index != -1) {
                 int count = msg.substring(count_index + 6).toInt();
                 if (count > 0 && count <= 2000) {
-                    resetBatchState();
-                    expected_target_count_ = count;
-                    batch_in_progress_ = true;
+                    this->resetBatchState();
+                    this->expected_target_count_ = count;
+                    this->batch_in_progress_ = true;
                     sendLine("BATCH_READY");
                 } else {
                     sendLine("ERROR: Invalid target count");
@@ -194,7 +166,7 @@ void SerialCommunication::processCompleteLine() {
                 sendLine("ERROR: Invalid BATCH_START format");
             }
         } else if (msg.startsWith("TARGET")) {
-            if (!batch_in_progress_ || expected_target_count_ == 0) {
+            if (!this->batch_in_progress_ || this->expected_target_count_ == 0) {
                 sendLine("ERROR: Batch not started");
             } else {
                 // 解析SEQ、X、Y
@@ -217,7 +189,7 @@ void SerialCommunication::processCompleteLine() {
                             stepperControl_->moveXAxisTo(mmX);
                             while (stepperControl_->isAnyRunning()) stepperControl_->run();
                         }
-                        processed_target_count_++;
+                        this->processed_target_count_++;
                         sendLine("TARGET_DONE,SEQ=" + String(seq));
                     } else {
                         sendLine("ERROR: Invalid target format");
@@ -227,7 +199,7 @@ void SerialCommunication::processCompleteLine() {
                 }
             }
         } else if (msg.startsWith("BATCH_COMPLETE")) {
-            if (!batch_in_progress_) {
+            if (!this->batch_in_progress_) {
                 sendLine("ERROR: Batch not started");
             } else {
                 // 归零三轴
@@ -235,7 +207,7 @@ void SerialCommunication::processCompleteLine() {
                     stepperControl_->homeAllAxes();
                 }
                 sendLine("BATCH_FINISHED");
-                resetBatchState();
+                this->resetBatchState();
             }
         } else {
             // 新增：转发到手动调试命令处理
@@ -250,76 +222,4 @@ void SerialCommunication::processCompleteLine() {
     memset(inputBuffer_, 0, sizeof(inputBuffer_));
     bufferIndex_ = 0;
     isStringComplete_ = false;
-}
-
-// ROI数据流处理方法实现
-
-// 解析 ROI 字符串
-bool SerialCommunication::parseROIString(const String& input, SerialROIData& roiData) {
-    // 检查基本格式
-    if (!input.startsWith("ROI")) {
-        return false;
-    }
-    
-    // 查找分隔符位置
-    int firstComma = input.indexOf(',');
-    int xPos = input.indexOf('X');
-    int secondComma = input.indexOf(',', firstComma + 1);
-    int yPos = input.indexOf('Y');
-    
-    if (firstComma == -1 || xPos == -1 || secondComma == -1 || yPos == -1) {
-        return false;
-    }
-    
-    // 提取各部分
-    String roiStr = input.substring(3, firstComma); // 跳过"ROI"
-    String xStr = input.substring(xPos + 1, secondComma); // 跳过"X"
-    String yStr = input.substring(yPos + 1); // 跳过"Y"
-    
-    // 转换为数值
-    roiData.roiIndex = roiStr.toInt();
-    roiData.cx = xStr.toFloat();
-    roiData.cy = yStr.toFloat();
-    
-    // 验证转换结果
-    if (roiData.roiIndex <= 0) {
-        return false;
-    }
-    
-    return true;
-}
-
-// 立即处理单个ROI数据（流处理模式）
-void SerialCommunication::processIndividualROI(const SerialROIData& roiData) {
-    float targetX = roiData.cx;
-    float targetY = roiData.cy;
-    if (stepperControl_) {
-        int stepX = (int)targetX;
-        int stepY = (int)targetY;
-        stepperControl_->moveXAxisTo(stepX);
-        stepperControl_->moveYAxisTo(stepY);
-    }
-}
-
-// 发送应答消息给上位机
-void SerialCommunication::sendACK(int roiIndex, bool success) {
-    if (success) {
-        sendLine("ACK_ROI" + String(roiIndex));
-    } else {
-        sendLine("NACK_ROI" + String(roiIndex));
-    }
-}
-
-// 清空批次缓冲区
-void SerialCommunication::clearBatchBuffer() {
-    for (int i = 0; i < BATCH_BUFFER_SIZE; i++) {
-        batchBuffer_[i] = {0, 0.0, 0.0};
-    }
-    currentBatchCount_ = 0;
-}
-
-// 新增：重置批次计数
-void SerialCommunication::resetROICount() {
-    expectedROICount_ = 0;
-    processedROICount_ = 0;
 }
