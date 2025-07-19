@@ -38,7 +38,7 @@ StepperControl - 步进电机底层控制模块
 StepperControl::StepperControl() 
     : stepperX_(1, X_STEP_PIN, X_DIR_PIN),
       stepperY_(1, Y_STEP_PIN, Y_DIR_PIN),
-      stepperZ_(1, Z_STEP_PIN, Z_DIR_PIN),
+    //   stepperZ_(1, Z_STEP_PIN, Z_DIR_PIN),
       currentStepperNumber_(0)
 {
 }
@@ -50,8 +50,8 @@ void StepperControl::init() {
     pinMode(X_DIR_PIN, OUTPUT);
     pinMode(Y_STEP_PIN, OUTPUT);
     pinMode(Y_DIR_PIN, OUTPUT);
-    pinMode(Z_STEP_PIN, OUTPUT);
-    pinMode(Z_DIR_PIN, OUTPUT);
+    // pinMode(Z_STEP_PIN, OUTPUT);
+    // pinMode(Z_DIR_PIN, OUTPUT);
     
     pinMode(ENABLE_PIN, OUTPUT);
     digitalWrite(ENABLE_PIN, LOW); // 使能电机驱动板
@@ -66,8 +66,8 @@ void StepperControl::init() {
     stepperY_.setMaxSpeed(Y_AXIS_MAX_SPEED);
     stepperY_.setAcceleration(Y_AXIS_ACCELERATION);
     
-    stepperZ_.setMaxSpeed(Z_AXIS_MAX_SPEED);
-    stepperZ_.setAcceleration(Z_AXIS_ACCELERATION);
+    // stepperZ_.setMaxSpeed(Z_AXIS_MAX_SPEED);
+    // stepperZ_.setAcceleration(Z_AXIS_ACCELERATION);
     
     // 设置零点
     setZeroPosition();
@@ -94,12 +94,12 @@ void StepperControl::moveTo(int data) {
             stepperY_.moveTo(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ_.moveTo(data * ONE_MM_STEPS);
+            // stepperZ_.moveTo(data * ONE_MM_STEPS);
             break;
         case 0:
             stepperX_.moveTo(data * ONE_MM_STEPS);
             stepperY_.moveTo(data * ONE_MM_STEPS);
-            stepperZ_.moveTo(data * ONE_MM_STEPS);
+            // stepperZ_.moveTo(data * ONE_MM_STEPS);
             break;
     }
 }
@@ -113,12 +113,12 @@ void StepperControl::move(int data) {
             stepperY_.move(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ_.move(data * ONE_MM_STEPS);
+            // stepperZ_.move(data * ONE_MM_STEPS);
             break;
         case 0:
             stepperX_.move(data * ONE_MM_STEPS);
             stepperY_.move(data * ONE_MM_STEPS);
-            stepperZ_.move(data * ONE_MM_STEPS);
+            // stepperZ_.move(data * ONE_MM_STEPS);
             break;
     }
 }
@@ -132,12 +132,12 @@ void StepperControl::runToNewPosition(int data) {
             stepperY_.runToNewPosition(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
+            // stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
             break;
         case 0:
             stepperX_.runToNewPosition(data * ONE_MM_STEPS);
             stepperY_.runToNewPosition(data * ONE_MM_STEPS);
-            stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
+            // stepperZ_.runToNewPosition(data * ONE_MM_STEPS);
             break;
     }
 }
@@ -151,12 +151,12 @@ void StepperControl::setCurrentPosition(int data) {
             stepperY_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
         case 3:
-            stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
+            // stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
         case 0:
             stepperX_.setCurrentPosition(data * ONE_MM_STEPS);
             stepperY_.setCurrentPosition(data * ONE_MM_STEPS);
-            stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
+            // stepperZ_.setCurrentPosition(data * ONE_MM_STEPS);
             break;
     }
 }
@@ -171,12 +171,12 @@ void StepperControl::setAcceleration(int accelerationValue) {
             stepperY_.setAcceleration(accelerationValue);
             break;
         case 3:
-            stepperZ_.setAcceleration(accelerationValue);
+            // stepperZ_.setAcceleration(accelerationValue);
             break;
         case 0:
             stepperX_.setAcceleration(accelerationValue);
             stepperY_.setAcceleration(accelerationValue);
-            stepperZ_.setAcceleration(accelerationValue);
+            // stepperZ_.setAcceleration(accelerationValue);
             break;
     }
 }
@@ -190,12 +190,12 @@ void StepperControl::setMaxSpeed(int maxSpeedValue) {
             stepperY_.setMaxSpeed(maxSpeedValue);
             break;
         case 3:
-            stepperZ_.setMaxSpeed(maxSpeedValue);
+            // stepperZ_.setMaxSpeed(maxSpeedValue);
             break;
         case 0:
             stepperX_.setMaxSpeed(maxSpeedValue);
             stepperY_.setMaxSpeed(maxSpeedValue);
-            stepperZ_.setMaxSpeed(maxSpeedValue);
+            // stepperZ_.setMaxSpeed(maxSpeedValue);
             break;
     }
 }
@@ -207,8 +207,8 @@ void StepperControl::printPositions() {
     Serial.print(F("stepperY Position: "));
     Serial.println(stepperY_.currentPosition() / ONE_MM_STEPS);
     Serial.print(F("stepperZ Position: "));
-    Serial.println(stepperZ_.currentPosition() / ONE_MM_STEPS);
-    Serial.print(F("Current Running Motor: "));
+    //Serial.println(stepperZ_.currentPosition() / ONE_MM_STEPS);
+    //Serial.print(F("Current Running Motor: "));
     
     if (currentStepperNumber_ == 1 || currentStepperNumber_ == 2 || currentStepperNumber_ == 3) {
         Serial.print(F("Motor# "));
@@ -220,21 +220,21 @@ void StepperControl::printPositions() {
 
 // 检查电机是否在运行
 bool StepperControl::isAnyRunning() {
-    return stepperX_.isRunning() || stepperY_.isRunning() || stepperZ_.isRunning();
+    return stepperX_.isRunning() || stepperY_.isRunning();
 }
 
 // 运行电机
 void StepperControl::run() {
     stepperX_.run();
     stepperY_.run();
-    stepperZ_.run();
+    //stepperZ_.run();
 }
 
 // 设置零点
 void StepperControl::setZeroPosition() {
     stepperX_.setCurrentPosition(0);
     stepperY_.setCurrentPosition(0);
-    stepperZ_.setCurrentPosition(0);
+    //stepperZ_.setCurrentPosition(0);
 }
 
 // 单独控制各轴
@@ -247,7 +247,7 @@ void StepperControl::moveYAxisTo(int position) {
 }
 
 void StepperControl::moveZAxisTo(int position) {
-    stepperZ_.moveTo(position * ONE_MM_STEPS);
+    //stepperZ_.moveTo(position * ONE_MM_STEPS);
 }
 
 // 等待电机到达目标位置

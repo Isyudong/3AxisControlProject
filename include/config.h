@@ -16,8 +16,8 @@ const int Y_DIR_PIN = 6;   // Y轴方向控制引脚
 const int Y_STEP_PIN = 3;  // Y轴步进控制引脚
 
 // Z轴引脚定义
-const int Z_DIR_PIN = 7;   // Z轴方向控制引脚
-const int Z_STEP_PIN = 4;  // Z轴步进控制引脚
+// const int Z_DIR_PIN = 7;   // Z轴方向控制引脚
+// const int Z_STEP_PIN = 4;  // Z轴步进控制引脚
 
 // 继电器控制引脚
 const int RELAY_PIN = 9;
@@ -26,15 +26,15 @@ const int RELAY_PIN = 9;
 const int MAX_COORDINATES = 40; // 最大坐标数量
 
 // X轴电机参数
-const int X_AXIS_MAX_SPEED = 2000;
-const int X_AXIS_ACCELERATION = 1000;
+const int X_AXIS_MAX_SPEED = 3000;
+const int X_AXIS_ACCELERATION = 3000;
 
 // Y轴电机参数
-const int Y_AXIS_MAX_SPEED = 2000;
-const int Y_AXIS_ACCELERATION = 1000;
+const int Y_AXIS_MAX_SPEED = 3000;
+const int Y_AXIS_ACCELERATION = 3000;
 
 // Z轴电机参数
-const int Z_AXIS_MAX_SPEED = 1000;
-const int Z_AXIS_ACCELERATION = 500;
+// const int Z_AXIS_MAX_SPEED = 1000;
+// const int Z_AXIS_ACCELERATION = 500;
 
 #endif

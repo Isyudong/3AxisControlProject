@@ -81,8 +81,6 @@ void setup() // 初始化函数
   Serial.println(F("========================================"));
   Serial.println(F("Mode: AutoMode (ROI Processing Active)"));
   Serial.println(F("Ready to receive ROI data..."));
-  Serial.println(F("Format: ROI{index},X{coord},Y{coord}"));
-  Serial.println(F("Example: ROI1,X100.5,Y200.3"));
   Serial.println(F("========================================"));
   Serial.println(F("Debug Commands:"));
   Serial.println(F("  HandMode - Enter manual debug mode"));

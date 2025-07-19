@@ -10,7 +10,7 @@ class StepperControl {
 private:
     AccelStepper stepperX_;
     AccelStepper stepperY_;
-    AccelStepper stepperZ_;
+    // AccelStepper stepperZ_;
     int currentStepperNumber_;
 
 public:
