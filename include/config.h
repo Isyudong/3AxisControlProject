@@ -25,6 +25,11 @@ const int RELAY_PIN = 9;
 // 串口通讯参数
 const int MAX_COORDINATES = 40; // 最大坐标数量
 
+/*
+    根据AccelStepper库介绍，Arduino Uno上，可以支持的可靠的最快电机速度
+    约为 4000steps/s。理论上函数setMaxSpeed（）可以支持无限大的速度，但
+    实际受限于cpu的时钟频率。 
+*/
 // X轴电机参数
 const int X_AXIS_MAX_SPEED = 3000;
 const int X_AXIS_ACCELERATION = 3000;
