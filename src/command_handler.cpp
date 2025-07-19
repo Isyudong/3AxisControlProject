@@ -25,9 +25,11 @@ CommandHandler - 手动调试命令处理模块
  * 自动模式下ROI批量处理由ROI流处理器负责，所有ROI处理完毕后三轴自动归零。
  * 手动模式仅用于调试，不影响自动归零逻辑。
 */
+
 // 构造函数
 CommandHandler::CommandHandler(StepperControl* stepper) 
-    : stepperControl_(stepper), isHandMode_(false) {
+    : stepperControl_(stepper),
+      isHandMode_(false) {
 }
 
 // 设置和获取模式

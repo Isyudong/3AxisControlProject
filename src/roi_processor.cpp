@@ -30,10 +30,8 @@ ROIProcessor - ROI视觉数据处理模块
  * 
  * 执行流程:
  * 1. 移动Y轴到目标位置
- * 2. 等待Y轴运动完成
- * 3. 移动X轴到目标位置
- * 4. 等待X轴运动完成
- * 5. 到达ROI位置 (可扩展触发继电器等操作)
+ * 2. 移动X轴到目标位置
+ * 3. 到达ROI位置 (可扩展触发继电器等操作)
  * 
  * 状态查询:
  * isFull() - 检查ROI缓冲区是否已满
@@ -82,10 +80,9 @@ void ROIProcessor::executeROIMovement(const ROIData& roiData) {
     Serial.print(actualY);
     Serial.println(F("mm"));
     
-    // 执行移动：先移动Y轴，再移动X轴
+    // 执行移动,同步进行！
     stepperControl_->moveYAxisTo(actualY);
-    waitForMovementComplete();
-    
+    // waitForMovementComplete();
     stepperControl_->moveXAxisTo(actualX);
     waitForMovementComplete();
     
